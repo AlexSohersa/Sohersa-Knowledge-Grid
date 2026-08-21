@@ -1,7 +1,21 @@
 const DEFAULT_DOMAIN = "gruposohersa.com";
 
+/**
+ * El dominio corporativo.
+ *
+ * Una variable declarada PERO VACÍA cuenta como ausente. No es una sutileza:
+ * `??` solo cae al valor por omisión con `null` o `undefined`, nunca con `""`,
+ * y los paneles de configuración —Vercel entre ellos— guardan la variable
+ * aunque se deje el campo en blanco. Con la versión anterior, `ALLOWED_DOMAIN=`
+ * comparaba todos los correos contra la cadena vacía y no dejaba entrar a
+ * NADIE, con un mensaje que además culpaba a la cuenta.
+ *
+ * Se recorta también el espacio en blanco: un valor pegado con un salto de
+ * línea al final es invisible en el panel y rompe la comparación igual.
+ */
 function allowedDomain(): string {
-  return (process.env.ALLOWED_DOMAIN ?? DEFAULT_DOMAIN).toLowerCase();
+  const declarado = process.env.ALLOWED_DOMAIN?.trim();
+  return (declarado || DEFAULT_DOMAIN).toLowerCase();
 }
 
 function csvEnv(name: string): string[] {

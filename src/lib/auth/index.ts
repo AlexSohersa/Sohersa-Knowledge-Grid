@@ -52,8 +52,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (!isAllowedEmail(email)) {
         const dominio = email.toLowerCase().split("@")[1] ?? "(sin dominio)";
+        const declarado = process.env.ALLOWED_DOMAIN;
+        // Se distingue "no declarada" de "declarada vacía": la segunda parece
+        // configurada en el panel y es la que cuesta encontrar.
+        const comoLlega =
+          declarado === undefined
+            ? "(no declarada, se usa el valor por omisión)"
+            : declarado.trim() === ""
+              ? "(declarada pero VACÍA)"
+              : `"${declarado}"`;
         return rechazar(
-          `dominio "${dominio}" no autorizado; ALLOWED_DOMAIN=${process.env.ALLOWED_DOMAIN ?? "(sin definir)"}`,
+          `dominio "${dominio}" no autorizado; ALLOWED_DOMAIN=${comoLlega}`,
         );
       }
 

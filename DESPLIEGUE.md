@@ -61,13 +61,23 @@ Seis. Ni una más hace falta.
   administradores vive en la tabla `grid.GridAdmin`, que arranca vacía. Sin esta
   variable nadie podría entrar a Administración a dar de alta al primero.
 
-### Opcionales
+### Opcionales — y de verdad opcionales
 
-| Variable | Cuándo |
+**Lo más limpio es NO crearlas.** Si no las necesitas, no las añadas en Vercel;
+el código ya trae el valor correcto por omisión.
+
+| Variable | Cuándo ponerla |
 |---|---|
-| `ALLOWED_EMAILS` | Correos de fuera del dominio, separados por comas |
-| `ALLOWED_DOMAIN` | Solo si cambia el dominio; ya es `gruposohersa.com` por omisión |
+| `ALLOWED_EMAILS` | Solo si hay que dejar entrar correos de fuera del dominio, separados por comas |
+| `ALLOWED_DOMAIN` | Solo si cambia el dominio corporativo; ya es `gruposohersa.com` |
 | `CRONOGRAMA_SHEET_ID` | Solo para apuntar a otro cronograma; ya trae el real |
+
+> **Crearlas y dejarlas en blanco no es lo mismo que no crearlas.** Vercel
+> guarda la variable aunque el campo quede vacío, y el código la recibe como
+> una cadena vacía. Antes eso tumbaba el inicio de sesión: `ALLOWED_DOMAIN`
+> vacía comparaba todos los correos contra `""` y no dejaba entrar a nadie.
+> Ya está corregido —una variable vacía cuenta como ausente—, pero si no la
+> necesitas, bórrala del panel y queda más claro.
 
 ### Las que NO se ponen
 
@@ -202,6 +212,7 @@ no la movió.
 | `redirect_uri_mismatch` | Falta el URI del paso 2, o aún no ha propagado |
 | Inicia sesión y vuelve al login en bucle | `AUTH_URL` mal puesta o ausente |
 | Entra, pero pide cuenta aunque ya entraste al portal | `AUTH_SECRET` distinto al de las otras apps |
+| "Tu cuenta no tiene acceso" con un correo del dominio | Alguna variable opcional creada **en blanco**. El log dice cuál: busca `[login] rechazado:` |
 | La biblioteca sale vacía | Falta el paso 3, o `DATABASE_URL` apunta a otra base |
 | El visor de Drive no carga el documento | Permisos de ese archivo en Drive, no de la app |
 

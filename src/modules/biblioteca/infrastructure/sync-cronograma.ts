@@ -22,9 +22,14 @@ import { db as sohersaDb, dbConfigured } from "@/lib/grid/db";
  *
  * Se deja configurable por entorno para poder apuntar a una copia de pruebas
  * sin tocar el código; por omisión, la misma que usa Digital Core.
+ *
+ * Una variable declarada pero VACÍA cuenta como ausente: los paneles de
+ * configuración guardan la variable aunque se deje el campo en blanco, y con
+ * `??` la cadena vacía habría ganado a este valor por omisión, dejando la
+ * sincronización apuntando a ninguna hoja.
  */
 const SHEET_ID =
-  process.env.CRONOGRAMA_SHEET_ID ?? "17FurtgUHN5pRqGzsvG37VZ0suO6Afuo7nR2bNAPB7XA";
+  process.env.CRONOGRAMA_SHEET_ID?.trim() || "17FurtgUHN5pRqGzsvG37VZ0suO6Afuo7nR2bNAPB7XA";
 
 const TAB_CRONOGRAMA = "CRONOGRAMA DE ESTANDARIZACIÓN";
 const TAB_LINKS = "_REGISTRO_LINKS_";
