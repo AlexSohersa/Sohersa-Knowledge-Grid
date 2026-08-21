@@ -20,12 +20,44 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
 
-    async signIn({ account, profile }) {
-      if (account?.provider !== "google") return false;
-      if (!profile?.email) return false;
-      // Google Workspace marca esto; una cuenta sin verificar no entra.
-      if (profile.email_verified === false) return false;
-      return isAllowedEmail(profile.email);
+    async signIn({ account, user, profile }) {
+      /*
+       * El correo sale de `user`, no de `profile`. Es lo que hacen Deal Engine
+       * y Evaluación 360, y la razón importa:
+       *
+       * `profile` es el payload CRUDO que devolvió Google. Que traiga `email`
+       * depende de qué reclamaciones incluya el `id_token` en cada caso, y en
+       * producción llegó vacío: el inicio de sesión moría con `AccessDenied`
+       * aunque la cuenta fuera del dominio correcto. `user` es el objeto que
+       * Auth.js ya normalizó a partir del perfil y del endpoint `userinfo`, y
+       * ahí el correo siempre está.
+       *
+       * Tampoco se comprueba `email_verified`: las otras herramientas no lo
+       * hacen, y en Workspace la reclamación no siempre viene. Un dominio
+       * corporativo ya implica una cuenta verificada por el administrador.
+       */
+      const rechazar = (motivo: string) => {
+        // Auth.js convierte cualquier `false` en el mismo `AccessDenied` sin
+        // decir cuál condición falló. Se registra el DOMINIO, nunca el correo
+        // completo: basta para diagnosticar sin dejar datos personales.
+        console.error(`[login] rechazado: ${motivo}`);
+        return false;
+      };
+
+      if (account?.provider !== "google")
+        return rechazar(`proveedor inesperado (${account?.provider ?? "ninguno"})`);
+
+      const email = user?.email ?? profile?.email;
+      if (!email) return rechazar("Google no devolvió correo");
+
+      if (!isAllowedEmail(email)) {
+        const dominio = email.toLowerCase().split("@")[1] ?? "(sin dominio)";
+        return rechazar(
+          `dominio "${dominio}" no autorizado; ALLOWED_DOMAIN=${process.env.ALLOWED_DOMAIN ?? "(sin definir)"}`,
+        );
+      }
+
+      return true;
     },
 
     async jwt({ token, account, profile, user }) {
@@ -77,18 +109,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
          * muestra la pantalla de permisos. Guardado una vez, esa pantalla se ve
          * una sola vez en la vida.
          */
+        /*
+         * El correo, por el mismo orden que en `signIn`: `user` primero.
+         *
+         * `profile` puede llegar sin `email` según lo que Google incluya en el
+         * `id_token`. Cuando eso pasa, el token se quedaba sin correo —y el
+         * correo es la llave de TODO aquí: el padrón, los guardados, el
+         * historial y los permisos se resuelven por él.
+         */
+        const correo = user?.email ?? profile?.email ?? token.email;
+
         if (account.refresh_token) {
           token.googleRefresh = account.refresh_token;
-          await guardarRefresh(profile?.email ?? token.email, account.refresh_token);
+          await guardarRefresh(correo, account.refresh_token);
         } else {
           // Google no lo mandó —ya estaba concedido—: se recupera el guardado.
-          const guardado = await leerRefresh(profile?.email ?? token.email);
+          const guardado = await leerRefresh(correo);
           if (guardado) token.googleRefresh = guardado;
         }
-      }
 
-      if (profile?.email) {
-        token.email = profile.email;
+        if (correo) token.email = correo;
       }
 
       /*
