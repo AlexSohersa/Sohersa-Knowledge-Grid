@@ -1,0 +1,104 @@
+/* =============================================================================
+ * TOKENS · Sohersa Knowledge Grid
+ * =============================================================================
+ * Los valores salen TAL CUAL del diseño `Centro de Conocimiento.dc.html` de
+ * Claude Design. No se reinterpretan ni se "mejoran": el diseño es la fuente de
+ * verdad y cualquier ajuste se hace allá primero.
+ *
+ * El prefijo es `--kc-` (Knowledge Center) para no chocar con `--cv-` de
+ * Conexión Viva si algún día dos hojas conviven en la misma página.
+ * ========================================================================== */
+
+:root {
+  /* ── Fondos oscuros: el chrome de la app ─────────────────────────────── */
+  --kc-deep: #07172b; /* fondo del login y del riel lateral */
+  --kc-deep-2: #0c2038; /* gradiente del login */
+  --kc-navy: #0a1728; /* visor de documento a pantalla completa */
+  --kc-navy-soft: #102238; /* superficies elevadas sobre el navy */
+
+  /* ── Tinta sobre claro ───────────────────────────────────────────────── */
+  --kc-ink: #102039; /* texto principal */
+  --kc-ink-2: #455771; /* texto secundario */
+  --kc-ink-3: #718198; /* texto terciario, metadatos */
+  --kc-ink-4: #8a99ad; /* placeholders */
+
+  /* ── Tinta sobre oscuro (riel lateral) ───────────────────────────────── */
+  --kc-dk-1: #c6d4e2;
+  --kc-dk-2: #8fa6bc;
+  --kc-dk-3: #5f7c93;
+
+  /* ── Superficies claras ──────────────────────────────────────────────── */
+  --kc-bg: #f2f6fa; /* fondo del área de contenido */
+  --kc-surface: #ffffff; /* tarjetas y paneles */
+  --kc-surface-2: #f6f9fc; /* hover de filas */
+  --kc-line: #dde5ee; /* bordes */
+  --kc-line-2: #c6d2de; /* bordes marcados, scrollbar */
+
+  /* ── Verde de marca: la acción ───────────────────────────────────────── */
+  --kc-green: #32d66b; /* acento vivo, aros y puntos */
+  --kc-green-solid: #199950; /* botones primarios y enlaces */
+  --kc-green-hover: #137a3e; /* su estado hover */
+  --kc-green-ink: #178a49; /* verde legible sobre claro */
+  --kc-green-soft: #e4f8eb; /* fondo suave verde */
+
+  /* ── Familia de acentos por tipo de conocimiento ─────────────────────
+   * Cada tipo tiene su color en todo el producto: la píldora del listado, el
+   * punto de la sección y el aro de la ficha usan el mismo par (soft/ink). Es
+   * lo que permite reconocer de un vistazo si algo es un documento, un video o
+   * una pregunta, sin leer la etiqueta. */
+
+  /* Documentos */
+  --kc-doc-soft: #e9f1fb;
+  --kc-doc-ink: #31677f;
+  --kc-doc-dot: #3e7fa6;
+  /* Capacitaciones */
+  --kc-cap-soft: #e4f8eb;
+  --kc-cap-ink: #178a49;
+  --kc-cap-dot: #32d66b;
+  /* Herramientas */
+  --kc-tool-soft: #ddf7f4;
+  --kc-tool-ink: #22726f;
+  --kc-tool-dot: #39b8b4;
+  /* Preguntas frecuentes */
+  --kc-faq-soft: #fdf3dc;
+  --kc-faq-ink: #b07c10;
+  --kc-faq-dot: #f5b843;
+  /* Comunidad */
+  --kc-com-soft: #edebfc;
+  --kc-com-ink: #5d50c9;
+  --kc-com-dot: #8b7cf6;
+  /* Plantillas y archivos de Revit */
+  --kc-tpl-soft: #fce9ea;
+  --kc-tpl-ink: #c23840;
+  --kc-tpl-dot: #e95e64;
+
+  /* ── Acentos sueltos que el diseño usa en avatares y fichas ──────────── */
+  --kc-teal: #39b8b4;
+  --kc-blue: #3e7fa6;
+  --kc-violet: #8b7cf6;
+  --kc-amber: #f5b843;
+  --kc-orange: #e8825e;
+  --kc-red: #c23840;
+
+  /* ── Radios ──────────────────────────────────────────────────────────── */
+  --kc-r-sm: 8px;
+  --kc-r: 10px;
+  --kc-r-md: 11px;
+  --kc-r-lg: 16px;
+  --kc-r-xl: 20px;
+
+  /* ── Sombras ─────────────────────────────────────────────────────────── */
+  --kc-shadow-btn: 0 6px 16px rgba(25, 153, 80, 0.22);
+  --kc-shadow-btn-lg: 0 8px 20px rgba(25, 153, 80, 0.22);
+  --kc-shadow-lift:
+    0 2px 4px rgba(7, 23, 43, 0.05), 0 18px 40px rgba(7, 23, 43, 0.13);
+  --kc-shadow-card: 0 1px 2px rgba(7, 23, 43, 0.04);
+
+  /* ── Medidas del armazón ─────────────────────────────────────────────── */
+  --kc-rail: 232px; /* ancho del riel de navegación */
+  --kc-topbar: 60px; /* alto de la barra superior */
+
+  /* ── Tipografía ──────────────────────────────────────────────────────── */
+  --kc-font:
+    "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+}

@@ -1,0 +1,352 @@
+/* =============================================================================
+ * ARMAZÓN Y UTILIDADES · Sohersa Knowledge Grid
+ * =============================================================================
+ * Las clases (`kc-*`) y los keyframes son los mismos del diseño de Claude
+ * Design, con los mismos nombres, para que comparar diseño e implementación sea
+ * directo. Los valores viven en tokens.css.
+ * ========================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background: var(--kc-deep);
+  font-family: var(--kc-font);
+  color: var(--kc-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--kc-green-solid);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--kc-green-hover);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--kc-line-2);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--kc-ink-4);
+}
+
+:focus-visible {
+  outline: 2px solid var(--kc-green);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ── Animaciones ─────────────────────────────────────────────────────────── */
+
+@keyframes kc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes kc-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kc-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes kc-slide-r {
+  from {
+    transform: translateX(32px);
+    opacity: 0.2;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes kc-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes kc-toast {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes kc-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.09);
+  }
+}
+@keyframes kc-dash {
+  to {
+    stroke-dashoffset: -46;
+  }
+}
+@keyframes kc-shim {
+  0% {
+    background-position: -420px 0;
+  }
+  100% {
+    background-position: 420px 0;
+  }
+}
+
+/* ── Texturas ────────────────────────────────────────────────────────────── */
+
+/* Trama de puntos sobre el navy: el fondo del login y del riel. */
+.kc-dots {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.05) 1px,
+    transparent 0
+  );
+  background-size: 26px 26px;
+}
+
+/* La misma trama sobre claro, más tenue. */
+.kc-dots-lt {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(16, 32, 57, 0.05) 1.1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
+/* ── Utilidades de composición ───────────────────────────────────────────── */
+
+.kc-rise {
+  animation: kc-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/*
+ * Un panel que acompaña al scroll.
+ *
+ * Existe como clase —y no como estilo suelto— por una razón que costó
+ * encontrar: un elemento con `transform` crea un contexto de posicionamiento
+ * propio, y eso ANULA `position: sticky`. El panel deja de fijarse y se
+ * arrastra con la página.
+ *
+ * `kc-rise` termina en `translateY(0)` y, con `animation-fill-mode: both`, ese
+ * transform se queda puesto para siempre. Aunque sea la identidad, basta para
+ * romperlo.
+ *
+ * Por eso esta clase hace tres cosas juntas: fija el panel, lo separa de la
+ * barra superior, y —si además lleva `kc-rise`— cambia la animación por una
+ * que solo usa opacidad. Así la entrada se conserva sin romper el pegado.
+ */
+.kc-sticky {
+  position: sticky;
+  top: calc(var(--kc-topbar) + 16px);
+}
+
+.kc-sticky.kc-rise {
+  animation-name: kc-fade;
+}
+
+.kc-fade {
+  animation: kc-fade 0.22s ease both;
+}
+
+.kc-pop {
+  animation: kc-pop 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.kc-panel {
+  background: var(--kc-surface);
+  border: 1px solid var(--kc-line);
+  border-radius: var(--kc-r-lg);
+}
+
+.kc-row-h {
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+.kc-row-h:hover {
+  background: var(--kc-surface-2);
+}
+
+.kc-lift {
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.26s,
+    border-color 0.26s;
+}
+.kc-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--kc-shadow-lift);
+}
+
+.kc-btn {
+  transition:
+    transform 0.18s,
+    box-shadow 0.2s,
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+  cursor: pointer;
+  font-family: var(--kc-font);
+}
+.kc-btn:hover {
+  transform: translateY(-1px);
+}
+.kc-btn:active {
+  transform: translateY(0) scale(0.985);
+}
+.kc-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+/* Esqueleto de carga: el mismo barrido del diseño. */
+.kc-skel {
+  background: linear-gradient(90deg, #edf2f7 25%, #f7fafc 37%, #edf2f7 63%);
+  background-size: 840px 100%;
+  animation: kc-shim 1.3s infinite linear;
+  border-radius: 8px;
+}
+
+/* Recorta un texto a N líneas. La usan las tarjetas de la biblioteca, donde un
+   título largo no debe empujar la altura de la cuadrícula. */
+.kc-clamp-1,
+.kc-clamp-2,
+.kc-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.kc-clamp-1 {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+.kc-clamp-2 {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.kc-clamp-3 {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+/* Oculta visualmente pero deja el texto al lector de pantalla. */
+.kc-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Armazón de la aplicación ────────────────────────────────────────────── */
+
+/* Riel + contenido. El riel acompaña al scroll para que la navegación no se
+   pierda al bajar en una lista larga. */
+.kc-shell {
+  display: flex;
+  min-height: 100dvh;
+  background: var(--kc-bg);
+  /*
+   * `align-items: start` es lo que hace que el riel funcione.
+   *
+   * Por omisión un contenedor flex estira sus hijos (`stretch`) a la altura del
+   * más alto —aquí, una lista de 152 documentos—. El riel quedaba estirado a
+   * esa altura completa, y `position: sticky` no puede fijar un elemento más
+   * alto que la ventana: se comporta como si fuera estático y se va con la
+   * página, dejando el hueco oscuro que se ve al bajar.
+   *
+   * Con `start`, el riel conserva su propio alto de 100dvh y sí puede pegarse.
+   */
+  align-items: start;
+}
+
+.kc-rail {
+  width: var(--kc-rail);
+  flex-shrink: 0;
+  background: var(--kc-deep);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  /* Exactamente el alto de la ventana: ni más —rompería el pegado— ni menos. */
+  height: 100dvh;
+  overflow-y: auto;
+}
+
+.kc-main {
+  flex: 1;
+  min-width: 0; /* sin esto, una tabla ancha estira el flex y rompe el layout */
+  display: flex;
+  flex-direction: column;
+  /* Con `align-items: start` en el padre, el contenido ya no se estira solo:
+     este mínimo le devuelve el alto de ventana para que el fondo llegue abajo
+     aunque la página sea corta. */
+  min-height: 100dvh;
+}
+
+/* En pantallas estrechas el riel se va: la navegación pasa a la barra
+   superior. Se conserva el contenido, que es lo que importa en móvil. */
+@media (max-width: 900px) {
+  .kc-rail {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

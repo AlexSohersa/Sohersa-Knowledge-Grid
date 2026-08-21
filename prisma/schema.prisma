@@ -1,0 +1,845 @@
+// =============================================================================
+// SOHERSA — BASE UNIFICADA
+// =============================================================================
+// Todas las herramientas de la plataforma comparten UNA base. Este esquema
+// declara la parte que le toca a Sohersa Knowledge Grid:
+//
+//   · Las tablas PROPIAS: capacitaciones, rutas, FAQ, comunidad, guardados.
+//   · Las tablas del CONOCIMIENTO —`Resource` y `Automation`—, que pasan a ser
+//     de esta herramienta: el módulo de Recursos se retira de Digital Core y su
+//     contenido vive aquí, que es donde tiene sentido.
+//   · Las tablas del NÚCLEO, que solo se leen: `core.persona` es el padrón
+//     único de la empresa y lo comparten las cinco herramientas. Ahí viven
+//     también `es_admin` y `google_refresco`, que son de la persona y no de
+//     ninguna app en particular.
+//
+// `public."TeamMember"` NO se declara: era una copia del padrón y el portal
+// sigue usándola por su cuenta. Declararla aquí invitaría a leer el sitio
+// equivocado.
+//
+// LA REGLA DE LA BASE: el núcleo es dueño de personas, proyectos y clientes.
+// Las herramientas los REFERENCIAN por llave foránea; nunca guardan su propia
+// copia. Declarar aquí un directorio propio sería una cuarta copia del padrón
+// —justo el problema que la unificación vino a resolver—.
+//
+// Cómo se enlaza una persona: las tablas de `grid` guardan el `email` que
+// entrega la sesión y además una columna `persona_id`. Esa columna NO se
+// escribe desde la app: un disparador (`core.enlazar_persona`) la rellena al
+// insertar, buscando el correo en el padrón. Funciona también con los correos
+// alternos, así que quien entra con su Gmail en una herramienta y con el
+// corporativo en otra queda apuntando a la misma ficha.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client-grid"
+  /// Vercel corre Linux; sin esto Prisma solo trae el motor de Windows y en
+  /// producción toda consulta falla en silencio.
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  /// Tres secciones, tres dueños:
+  ///   core   — personas, proyectos y clientes. Del núcleo; aquí solo se lee.
+  ///   grid   — las tablas de esta herramienta.
+  ///   public — la bitácora compartida (`SyncLog`).
+  schemas = ["core", "grid", "public"]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NÚCLEO · el padrón único (solo lectura)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Una persona de SOHERSA.
+///
+/// Vive en `core` y la comparten las cinco herramientas. Aquí SOLO SE LEE: el
+/// alta, la foto y el puesto los mantiene el núcleo.
+///
+/// Se declaran únicamente los campos que esta herramienta usa. Prisma no exige
+/// mapear la tabla entera, y declarar de menos deja claro qué consume Knowledge
+/// Grid: si el núcleo agrega una columna, esta app no se entera y no se rompe.
+model Persona {
+  id             String  @id
+  nombre         String
+  nombre_usuario String?
+  puesto         String?
+  area           String?
+  foto           String?
+  activo         Boolean @default(true)
+
+  /* ── Lo que antes vivía en la tabla de credenciales del portal ────────
+   * Están aquí y no en cada herramienta porque son de la PERSONA, no de una
+   * app: el token de Google es el mismo para las cuatro, y con una copia por
+   * herramienta bastaría con que alguien revocara el acceso para dejar tres
+   * copias caducadas sin que nadie se entere. */
+  /// Administra la PLATAFORMA. Distinto de `GridAdmin`, que es de esta app.
+  es_admin        Boolean @default(false)
+  /// El `refresh_token` de Google, compartido entre las cuatro herramientas.
+  google_refresco String?
+
+  /* ── Lo que esta persona tiene en Knowledge Grid ──────────────────────
+   * Las relaciones inversas hacen explícito qué se borra en cascada si
+   * alguien deja la empresa: sus guardados, su historial y su avance. Lo que
+   * aportó a la comunidad NO se borra —ver `Question` y `Answer`—. */
+  asignaciones   PathAssignment[]
+  guardados      Bookmark[]
+  historial      ViewLog[]
+  votosFaq       FaqVote[]
+  votosRespuesta AnswerVote[]
+  preguntas      Question[]
+  respuestas     Answer[]
+  comentarios    AnswerComment[]
+  admin          GridAdmin?
+
+  correos PersonaCorreo[]
+
+  @@map("persona")
+  @@schema("core")
+}
+
+/// Los correos de una persona.
+///
+/// Una persona puede tener varios —el corporativo y el personal—, y esta tabla
+/// es lo que permite reconocerla entre a con el que entre. Es también lo que
+/// usa el disparador `core.enlazar_persona` para rellenar `persona_id`.
+///
+/// La PK es el CORREO: un correo pertenece a una sola persona.
+model PersonaCorreo {
+  correo     String  @id
+  personaId  String  @map("persona_id")
+  persona    Persona @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  /// El corporativo, el que se muestra por omisión.
+  principal  Boolean @default(false)
+
+  @@map("persona_correo")
+  @@schema("core")
+}
+
+/// La bitácora de sincronizaciones de la plataforma.
+///
+/// Es COMPARTIDA y vive en `public`: el portal registra aquí sus sincronizaciones
+/// de hojas de cálculo (`target = "sheets"`) y esta herramienta las del
+/// cronograma (`target = "recursos"`). Cada una lee y escribe solo sus propias
+/// filas, distinguidas por `target`.
+model SyncLog {
+  id      String  @id @default(cuid())
+  /// Qué se sincronizó: "recursos" es lo de esta herramienta.
+  target  String
+  ok      Boolean
+  created Int     @default(0)
+  updated Int     @default(0)
+  skipped Int     @default(0)
+  error   String?
+  runBy   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([target, createdAt])
+  @@schema("public")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BIBLIOTECA · manuales, estándares y automatizaciones
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Un documento del cronograma de estandarización.
+///
+/// Manuales, instructivos, estándares, plantillas y familias. Es el corazón de
+/// la biblioteca y AHORA ES DE KNOWLEDGE GRID: el módulo de Recursos se retira
+/// de Digital Core porque su lugar natural es el Centro de Conocimiento.
+///
+/// El contenido se sincroniza desde el "Cronograma de Estandarización" en
+/// Google Sheets. La clave de sincronización es `(code, origin)`: el código lo
+/// pone el cronograma y no cambia aunque se reescriba el título.
+model Resource {
+  id       String  @id @default(cuid())
+  /// Numeración del cronograma: "1.1", "4.2". Es la clave de sincronización.
+  code     String?
+  title    String
+  /// Sección a la que pertenece: "Instructivos para Revit", "Dynamo"…
+  section  String
+  /// Orden dentro de su sección, derivado del código.
+  position Int     @default(0)
+
+  /// Dónde está el archivo. Puede ser un enlace o un id de Drive.
+  fileName  String?
+  driveId   String?
+  url       String?
+  mimeType  String?
+  sizeBytes Int?
+
+  /// Quién lo elaboró. Es texto libre porque el cronograma lo captura así y
+  /// no siempre corresponde a alguien dado de alta en el padrón.
+  author   String?
+  /// Estado de la capacitación asociada: Pendiente · Agendada · Impartida.
+  training String?
+
+  /* ── Campos internos: solo los ve dirección y administración ──────────
+   * Son información de gestión —dicen qué está atrasado y de quién es—, y el
+   * recorte ocurre en el repositorio, no ocultándolos en la interfaz. */
+  /// ALTA · MEDIA · BAJA · TERMINADO.
+  priority String?
+  /// Si hace falta para arrancar un proyecto.
+  required Boolean @default(false)
+  /// Notas internas del cronograma.
+  notes    String?
+  /// Avance de 0 a 1.
+  progress Float?
+
+  /// `sheet` si vino del cronograma, `manual` si se dio de alta aquí.
+  origin String @default("sheet")
+
+  /// Correo de quien lo subió, cuando es manual.
+  createdBy String?
+
+  /* ── Dónde se usa este documento ── */
+  enRutas PathItem[]
+  enFaq   FaqEntry[]
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([code, origin])
+  @@index([section, position])
+  @@index([origin])
+
+  @@schema("grid")
+}
+
+/// Un archivo subido a la plataforma: automatizaciones, scripts, paquetes.
+///
+/// A diferencia de `Resource`, esto NO viene de ningún Sheet: se sube a mano y
+/// aquí vive su ficha.
+model Automation {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  /// Categoría libre: "Dynamo", "Scripts", "Plantillas"…
+  category    String?
+
+  /// Nombre original del archivo, para descargarlo con ese nombre.
+  fileName   String
+  /// Ruta relativa dentro del almacén de la plataforma.
+  storedPath String
+  mimeType   String?
+  sizeBytes  Int     @default(0)
+
+  /// Enlace externo, cuando en vez de archivo se registra una URL.
+  url String?
+
+  /// "v2.1" — la versión que declara quien lo sube.
+  version String?
+  /// Con qué funciona: "Revit 2023–2025", "Power BI"…
+  compat  String?
+
+  createdBy String
+  downloads Int      @default(0)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([category, createdAt])
+
+  @@schema("grid")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HERRAMIENTAS · el software con el que trabaja la empresa
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Un software o plataforma que el equipo usa: Revit, ACC, Dynamo…
+///
+/// Catálogo corto y estable, mantenido a mano desde Administración. No se
+/// sincroniza de ningún lado porque no existe fuente mejor que la decisión de
+/// Transformación Digital sobre qué se usa y en qué versión.
+model Tool {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  /// Software · Plataforma · Automatización · Interno.
+  kind        String
+  description String?
+  version     String?
+  license     String?
+  discipline  String?
+  accent      String  @default("#32D66B")
+  /// DISPONIBLE · PILOTO · EN_EVALUACION · DESCONTINUADO.
+  ///
+  /// Responde a "¿qué está a medias?": el equipo necesita distinguir la
+  /// herramienta consolidada de la que todavía se prueba, para no apoyar un
+  /// entregable en algo que puede cambiar la semana que viene.
+  status   String  @default("DISPONIBLE")
+  position Int     @default(0)
+  active   Boolean @default(true)
+
+  faq FaqEntry[]
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([active, position])
+
+  @@schema("grid")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAPACITACIONES · fuente de consulta, sin avance
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Una capacitación: el curso, no la sesión.
+///
+/// Es una FUENTE DE CONSULTA y no lleva avance de nadie. Quien entra a ver un
+/// video o bajar una presentación está consultando, no progresando. El avance
+/// existe solo dentro de una ruta asignada (`PathProgress`).
+model Training {
+  id         String   @id @default(cuid())
+  title      String
+  summary    String?
+  /// Qué cubre. Una línea por objetivo.
+  objectives String[] @default([])
+
+  /// Quién la imparte y su puesto, tal como se muestra en la ficha. Texto
+  /// libre: el instructor puede ser alguien externo.
+  instructor     String?
+  instructorRole String?
+
+  /// Duración legible ("2 h 40 min") y su equivalente en minutos, que es lo
+  /// que permite sumarlas sin volver a interpretar el texto.
+  duration    String?
+  durationMin Int     @default(0)
+
+  level    String  @default("Básico")
+  category String?
+  software String?
+  accent   String  @default("#32D66B")
+
+  /// BORRADOR · PUBLICADA · ARCHIVADA. Solo las publicadas se ven.
+  status String @default("BORRADOR")
+
+  period String?
+  views  Int     @default(0)
+
+  topics    TrainingTopic[]
+  pathItems PathItem[]
+  faq       FaqEntry[]
+
+  /// Correo de quien la creó.
+  createdBy String?
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([status, category])
+
+  @@schema("grid")
+}
+
+/// Un tema: el video, el ejercicio, la sesión.
+///
+/// Es la unidad de consulta —y, cuando la capacitación forma parte de una ruta,
+/// también la unidad de avance de esa ruta. La cuenta no la lleva el tema: la
+/// lleva `PathProgress`, atado a la asignación.
+model TrainingTopic {
+  id         String   @id @default(cuid())
+  trainingId String
+  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  /// "01", "02" — el número visible, no el orden interno.
+  code     String
+  title    String
+  summary  String?
+  /// Video · Presentación · Ejercicio · Lectura.
+  kind     String  @default("Video")
+  duration String?
+  position Int     @default(0)
+
+  /// Dónde está el video: Drive, YouTube o enlace directo. El reproductor
+  /// decide cómo incrustarlo a partir de la forma de la URL.
+  videoUrl String?
+
+  materials TrainingMaterial[]
+  progress  PathProgress[]
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([trainingId, code])
+  @@index([trainingId, position])
+
+  @@schema("grid")
+}
+
+/// Un material de apoyo: la presentación, el PDF, el archivo guía.
+///
+/// Vive aparte del tema porque un tema puede traer varios y cada uno tiene su
+/// tipo y su enlace: el visor necesita saber si abre un PDF, incrusta un Canva
+/// o descarga un .rvt.
+model TrainingMaterial {
+  id      String        @id @default(cuid())
+  topicId String
+  topic   TrainingTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  title String
+  /// PDF · PPT · XLS · RVT · ZIP · CANVA · LINK.
+  kind  String  @default("PDF")
+  url   String?
+  /// Id de Drive, cuando el archivo vive ahí y se incrusta con el visor.
+  driveId  String?
+  sizeText String?
+  /// Si se puede descargar o solo consultar en pantalla.
+  downloadable Boolean @default(true)
+  position     Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([topicId, position])
+
+  @@schema("grid")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RUTAS DE APRENDIZAJE · lo asignado, con seguimiento
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Una ruta de aprendizaje: la secuencia que alguien debe recorrer.
+///
+/// Distinta de la biblioteca a propósito. La biblioteca es todo lo que existe y
+/// se explora libremente; la ruta es lo que ESTA persona tiene que hacer, en
+/// orden, con etapas que se desbloquean al avanzar.
+model LearningPath {
+  id        String  @id @default(cuid())
+  name      String
+  objective String?
+  active    Boolean @default(true)
+
+  stages      PathStage[]
+  assignments PathAssignment[]
+
+  /// Correo de quien la creó.
+  createdBy String?
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([active])
+
+  @@schema("grid")
+}
+
+/// Una etapa: el bloque que agrupa varios elementos con un sentido.
+///
+/// Las etapas son las que se bloquean y desbloquean. Sin ellas la ruta sería
+/// una lista larga sin narrativa; con ellas se lee como un camino.
+model PathStage {
+  id     String       @id @default(cuid())
+  pathId String
+  path   LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+
+  /// "Etapa 1", "Etapa 2" — la etiqueta visible.
+  code        String
+  name        String
+  description String?
+  position    Int     @default(0)
+
+  items PathItem[]
+
+  @@index([pathId, position])
+
+  @@schema("grid")
+}
+
+/// Un elemento de una etapa: una capacitación o un documento.
+///
+/// Apunta a UNA de las dos cosas, nunca a las dos. Ahora que todo vive en la
+/// misma base, ambas referencias son FK reales.
+///
+/// El `title` se conserva aunque haya FK: si el documento se retira del
+/// cronograma, la fila de la ruta sigue siendo legible en vez de quedar en
+/// blanco. Es el respaldo que evita una pantalla rota.
+model PathItem {
+  id      String    @id @default(cuid())
+  stageId String
+  stage   PathStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  /// Cuando el elemento es una capacitación.
+  trainingId String?
+  training   Training? @relation(fields: [trainingId], references: [id], onDelete: SetNull)
+
+  /// Cuando el elemento es un documento del cronograma.
+  resourceId String?
+  resource   Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  /// El código del cronograma ("4.1"), conservado como referencia estable: la
+  /// resincronización puede regenerar ids, y el código no cambia.
+  resourceCode String?
+
+  title    String
+  duration String?
+  position Int     @default(0)
+
+  progress PathProgress[]
+
+  @@index([stageId, position])
+
+  @@schema("grid")
+}
+
+/// La ruta que le toca a una persona.
+///
+/// Una persona puede tener VARIAS rutas activas a la vez. La fecha de término
+/// en vez de borrar la fila permite decir "ya hiciste esta ruta el año pasado".
+model PathAssignment {
+  id     String       @id @default(cuid())
+  email  String
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+
+  pathId String
+  path   LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+
+  assignedBy String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  active     Boolean   @default(true)
+
+  progress PathProgress[]
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, pathId])
+  @@index([email, active])
+
+  @@schema("grid")
+}
+
+/// El avance de una persona en un elemento de SU RUTA.
+///
+/// Esto es de la ruta, no de la capacitación. Una capacitación por sí sola es
+/// material de consulta; el avance solo tiene sentido dentro de un camino que
+/// alguien asignó, y por eso la fila cuelga de `PathAssignment`.
+///
+/// La consecuencia buscada: si la misma capacitación está en dos rutas, cada
+/// una lleva su propia cuenta —son dos encargos distintos—.
+model PathProgress {
+  id           String         @id @default(cuid())
+  assignmentId String
+  assignment   PathAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  itemId String
+  item   PathItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  /// El tema concreto, cuando el elemento es una capacitación y se lleva la
+  /// cuenta tema a tema. `null` cuando es un documento, que se marca de una
+  /// pieza.
+  topicId String?
+  topic   TrainingTopic? @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  /// Segundo en el que se quedó el video, para reanudar donde iba.
+  seconds Int @default(0)
+
+  /// Si descargó el material. Señal distinta de "lo vio": en una ruta con
+  /// plantillas y checklists, bajarse el archivo ES el paso que importa.
+  downloaded   Boolean   @default(false)
+  downloadedAt DateTime?
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([assignmentId, itemId, topicId])
+  @@index([assignmentId, completed])
+
+  @@schema("grid")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAQ · las respuestas que ya son oficiales
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Una pregunta frecuente con su respuesta oficial.
+///
+/// Se separa de la comunidad porque son cosas distintas: la FAQ es doctrina
+/// —la respuesta que la empresa sostiene—, la comunidad es conversación. Una
+/// pregunta de comunidad bien resuelta puede promoverse a FAQ.
+model FaqEntry {
+  id       String   @id @default(cuid())
+  category String
+  question String
+  answer   String
+  /// Los pasos concretos, cuando la respuesta es un procedimiento.
+  steps    String[] @default([])
+
+  /* ── Lo relacionado, ahora con FK reales ── */
+  resourceId String?
+  resource   Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  /// El código del cronograma, como referencia estable ante resincronización.
+  resourceCode String?
+
+  trainingId String?
+  training   Training? @relation(fields: [trainingId], references: [id], onDelete: SetNull)
+
+  toolId String?
+  tool   Tool?   @relation(fields: [toolId], references: [id], onDelete: SetNull)
+
+  /// La pregunta de comunidad que la originó, si vino de ahí.
+  fromQuestionId String?
+  fromQuestion   Question? @relation(fields: [fromQuestionId], references: [id], onDelete: SetNull)
+
+  helpful    Int @default(0)
+  notHelpful Int @default(0)
+  position   Int @default(0)
+
+  votes FaqVote[]
+
+  published Boolean  @default(true)
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([category, position])
+  @@index([published])
+
+  @@schema("grid")
+}
+
+/// El voto de una persona sobre si una FAQ le sirvió.
+///
+/// Una fila por (persona, FAQ) para que nadie infle el contador votando muchas
+/// veces: el número que se muestra tiene que ser confiable.
+model FaqVote {
+  id     String     @id @default(cuid())
+  faqId  String
+  faq    FaqEntry   @relation(fields: [faqId], references: [id], onDelete: Cascade)
+  email  String
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+
+  useful Boolean
+
+  createdAt DateTime @default(now())
+
+  @@unique([faqId, email])
+
+  @@schema("grid")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMUNIDAD · preguntas y respuestas del equipo
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Una pregunta abierta del equipo.
+///
+/// El estado NO se guarda: se deriva de sus respuestas. Guardarlo obligaría a
+/// recalcularlo en cada cambio y podría quedar mintiendo.
+///
+/// Nota sobre el autor: se guarda el correo y también su nombre y puesto AL
+/// MOMENTO de preguntar. El enlace al padrón es `SET NULL` a propósito —si alguien deja
+/// la empresa, su pregunta y las respuestas que dio siguen siendo conocimiento
+/// útil para quien venga después—.
+model Question {
+  id    String @id @default(cuid())
+  title String
+  body  String
+
+  email      String
+  authorName String
+  authorRole String?
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
+
+
+  category String
+  software String?
+  tags     String[] @default([])
+
+  views  Int     @default(0)
+  closed Boolean @default(false)
+
+  answers    Answer[]
+  promovidas FaqEntry[]
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([email])
+
+  @@schema("grid")
+}
+
+/// Una respuesta a una pregunta de la comunidad.
+///
+/// `validatedAt` la convierte en solución oficial, y solo un administrador
+/// puede ponerlo. Pueden validarse VARIAS respuestas: a menudo hay más de un
+/// camino correcto, y esconder el segundo empobrece la respuesta. El orden lo
+/// da `validatedAt`.
+model Answer {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  body       String
+  email      String
+  authorName String
+  authorRole String?
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
+
+
+  validatedAt DateTime?
+  validatedBy String?
+
+  votes    AnswerVote[]
+  comments AnswerComment[]
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([questionId, validatedAt])
+
+  @@schema("grid")
+}
+
+/// El voto de una persona a una respuesta.
+///
+/// Una fila por (persona, respuesta): el contador que se muestra tiene que ser
+/// el número de personas, no el número de clics.
+model AnswerVote {
+  id       String     @id @default(cuid())
+  answerId String
+  answer   Answer     @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  email    String
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+
+
+  createdAt DateTime @default(now())
+
+  @@unique([answerId, email])
+
+  @@schema("grid")
+}
+
+/// Un comentario corto sobre una respuesta: matices, gracias, correcciones.
+model AnswerComment {
+  id       String @id @default(cuid())
+  answerId String
+  answer   Answer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  body       String
+  email      String
+  authorName String
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
+
+
+  createdAt DateTime @default(now())
+
+  @@index([answerId, createdAt])
+
+  @@schema("grid")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LO PERSONAL · guardados e historial
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Algo que una persona guardó para volver después.
+///
+/// Una sola tabla para todos los tipos porque la pantalla los muestra mezclados
+/// y ordenados por fecha. Cinco tablas obligarían a cinco consultas y a unirlas
+/// a mano para conseguir exactamente lo mismo.
+model Bookmark {
+  id     String     @id @default(cuid())
+  email  String
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+
+
+  /// doc · cap · tool · faq · com.
+  kind     String
+  /// Id del elemento en su tabla; para documentos, su código del cronograma.
+  targetId String
+  /// Título al momento de guardar, para pintar la tarjeta sin ir a buscar cada
+  /// elemento a su tabla.
+  title    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([email, kind, targetId])
+  @@index([email, createdAt])
+
+  @@schema("grid")
+}
+
+/// Lo último que abrió una persona.
+///
+/// Se guarda la última visita de cada elemento, no una fila por apertura: el
+/// historial responde "¿dónde estaba?", no "¿cuántas veces entré?".
+model ViewLog {
+  id     String     @id @default(cuid())
+  email  String
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+
+
+  kind     String
+  targetId String
+  title    String
+
+  viewedAt DateTime @default(now())
+
+  @@unique([email, kind, targetId])
+  @@index([email, viewedAt])
+
+  @@schema("grid")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMINISTRACIÓN
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Quién administra Sohersa Knowledge Grid.
+///
+/// Lista corta y propia: administrar aquí significa publicar capacitaciones,
+/// armar rutas y validar respuestas, que no es lo mismo que administrar la
+/// plataforma (`core.persona.es_admin`). Separarlas permite delegar una sin la
+/// otra.
+model GridAdmin {
+  email     String     @id
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
+  /// cualquiera de sus alternos— en `core.persona`.
+  persona_id String?  @unique
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+
+  grantedBy String?
+  createdAt DateTime   @default(now())
+
+  @@schema("grid")
+}

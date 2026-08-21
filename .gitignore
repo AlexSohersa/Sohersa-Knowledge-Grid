@@ -1,0 +1,24 @@
+node_modules
+.next
+out
+build
+
+.env
+.env.local
+.env*.local
+
+*.tsbuildinfo
+next-env.d.ts
+
+.DS_Store
+*.pem
+npm-debug.log*
+*.log
+
+# El HTML del diseño de Claude Design, descargado como referencia.
+.design
+
+# El lienzo del logo: 2.2 MB del editor de Claude Design empaquetado, no
+# diseño. Las láminas que sí importan son los `.dc.html` de al lado, que
+# vuelven a generarlo cuando haga falta.
+design/knowledge-grid-logo.html

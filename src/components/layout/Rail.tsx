@@ -1,0 +1,296 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Icon, type IconName } from "./icons";
+import { GridMark } from "@/components/brand/GridGlyph";
+import { cerrarSesion } from "@/app/actions";
+
+/**
+ * El riel de navegación.
+ *
+ * Es cliente porque necesita `usePathname` para saber qué sección está activa;
+ * los datos que muestra —los contadores, si hay ruta— los calcula el servidor y
+ * llegan por props. Así el riel no consulta nada por su cuenta.
+ */
+
+export type RailItem = {
+  href: string;
+  label: string;
+  icon: IconName;
+  badge?: string | null;
+  /** Cuando la sección existe pero esta persona todavía no puede entrar. */
+  disabled?: boolean;
+  /** Por qué está apagada, para el `title` del elemento. */
+  tip?: string;
+};
+
+export type RailUser = {
+  name: string;
+  initials: string;
+  photo: string | null;
+  role: string | null;
+};
+
+/**
+ * Si una ruta está activa.
+ *
+ * `/biblioteca/4.1` mantiene encendida la Biblioteca: al abrir el detalle de un
+ * documento, apagar la sección de la que vienes hace perder el sitio. La raíz
+ * es el único caso que exige coincidencia exacta, porque si no todo la
+ * encendería.
+ */
+function estaActiva(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
+function ItemRail({ item, activa }: { item: RailItem; activa: boolean }) {
+  const contenido = (
+    <>
+      <Icon name={item.disabled ? "lock" : item.icon} size={15} />
+      <span style={{ flex: 1, minWidth: 0 }}>{item.label}</span>
+      {item.badge && (
+        <span
+          style={{
+            fontSize: 9.5,
+            fontWeight: 600,
+            color: activa ? "var(--kc-green)" : "var(--kc-dk-2)",
+            background: "rgba(255,255,255,.08)",
+            borderRadius: 20,
+            padding: "1px 7px",
+          }}
+        >
+          {item.badge}
+        </span>
+      )}
+    </>
+  );
+
+  const estilo: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "9px 11px",
+    borderRadius: 10,
+    fontSize: 13,
+    textDecoration: "none",
+  };
+
+  // Una sección bloqueada no es un enlace: se ve, se explica por qué está
+  // apagada, y no lleva a ningún lado. Dejarla como enlace haría que el
+  // servidor tuviera que rechazar la visita, que es peor experiencia.
+  if (item.disabled) {
+    return (
+      <div
+        title={item.tip}
+        aria-disabled="true"
+        style={{ ...estilo, color: "#4A6076", cursor: "not-allowed" }}
+      >
+        {contenido}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={item.href}
+      aria-current={activa ? "page" : undefined}
+      className="kc-rail-link"
+      style={{
+        ...estilo,
+        color: activa ? "#fff" : "var(--kc-dk-2)",
+        background: activa
+          ? "linear-gradient(90deg,rgba(50,214,107,.2),rgba(50,214,107,.05))"
+          : "transparent",
+        boxShadow: activa ? "inset 0 0 0 1px rgba(50,214,107,.32)" : "none",
+        fontWeight: activa ? 600 : 400,
+      }}
+    >
+      {contenido}
+    </Link>
+  );
+}
+
+export function Rail({
+  principales,
+  secundarias,
+  usuario,
+}: {
+  principales: RailItem[];
+  secundarias: RailItem[];
+  usuario: RailUser;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <aside
+      className="kc-rail kc-dots"
+      /*
+       * Sin `position` aquí: el estilo inline gana sobre la hoja y sustituía el
+       * `sticky` de `.kc-rail` por `relative`, con lo que el riel se iba con la
+       * página al bajar. `sticky` ya establece contexto de posicionamiento, así
+       * que los hijos absolutos —la trama de puntos— siguen anclados a él.
+       */
+      style={{ padding: "15px 11px 11px" }}
+    >
+      {/* Marca */}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "5px 7px 16px",
+        }}
+      >
+        <GridMark size={38} glyph={23} />
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 8.5,
+              fontWeight: 600,
+              letterSpacing: ".19em",
+              color: "var(--kc-green)",
+            }}
+          >
+            SOHERSA
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: "-.018em",
+              color: "#fff",
+              lineHeight: 1.15,
+            }}
+          >
+            Knowledge
+            <br />
+            Grid
+          </div>
+        </div>
+      </div>
+
+      {/* Navegación */}
+      <nav
+        aria-label="Secciones"
+        style={{
+          position: "relative",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1,
+          minHeight: 0,
+          overflowY: "auto",
+        }}
+      >
+        {principales.map((item) => (
+          <ItemRail key={item.href} item={item} activa={estaActiva(pathname, item.href)} />
+        ))}
+
+        <div
+          style={{ height: 1, background: "rgba(255,255,255,.07)", margin: "11px 8px" }}
+        />
+
+        {secundarias.map((item) => (
+          <ItemRail key={item.href} item={item} activa={estaActiva(pathname, item.href)} />
+        ))}
+      </nav>
+
+      {/* Quién soy y la salida */}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          gap: 9,
+          padding: "9px 8px 3px",
+          borderTop: "1px solid rgba(255,255,255,.07)",
+          marginTop: 8,
+        }}
+      >
+        {usuario.photo ? (
+          // Con <img> y no next/image: Google rechaza la petición sin
+          // `referrerPolicy`, y el enlace de la foto caduca.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={usuario.photo}
+            alt=""
+            referrerPolicy="no-referrer"
+            style={{
+              width: 31,
+              height: 31,
+              borderRadius: "50%",
+              objectFit: "cover",
+              flexShrink: 0,
+              boxShadow: "0 0 0 2px rgba(50,214,107,.35)",
+            }}
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            style={{
+              width: 31,
+              height: 31,
+              borderRadius: "50%",
+              background: "var(--kc-teal)",
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              boxShadow: "0 0 0 2px rgba(50,214,107,.35)",
+            }}
+          >
+            {usuario.initials}
+          </span>
+        )}
+
+        <span style={{ flex: 1, minWidth: 0, lineHeight: 1.25 }}>
+          <span
+            style={{
+              display: "block",
+              fontSize: 12,
+              fontWeight: 600,
+              color: "#fff",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {usuario.name}
+          </span>
+          <span style={{ display: "block", fontSize: 10, color: "var(--kc-dk-3)" }}>
+            {usuario.role ?? "Sohersa"}
+          </span>
+        </span>
+
+        <form action={cerrarSesion}>
+          <button
+            type="submit"
+            title="Salir"
+            className="kc-btn"
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 8,
+              border: "none",
+              background: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--kc-dk-3)",
+              flexShrink: 0,
+            }}
+          >
+            <Icon name="logout" size={13} />
+            <span className="kc-sr">Cerrar sesión</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+  );
+}

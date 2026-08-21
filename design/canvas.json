@@ -1,0 +1,8 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1600, "title": "Exploración · seis glifos" },
+    { "file": "Bloque.dc.html", "x": 1760, "y": 0, "w": 1600, "title": "Bloque de marca · oscuro y claro" },
+    { "file": "Aplicacion.dc.html", "x": 3520, "y": 0, "w": 1400, "title": "Aplicación · escala real" }
+  ],
+  "launch": { "view": "canvas" }
+}
