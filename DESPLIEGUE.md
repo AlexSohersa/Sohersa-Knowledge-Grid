@@ -153,40 +153,50 @@ que no se pueda migrar producción por accidente.
 
 ---
 
-## Paso 4 · Dejar solo la biblioteca
+## Paso 4 · Dejar solo lo real  ✔ hecho
 
-En producción se estrena **únicamente la biblioteca**. Las demás secciones
-existen y funcionan, pero su contenido actual son datos de ejemplo que se
-cargaron para poder ver el diseño.
+En producción se estrenan **dos** secciones, y las dos tienen contenido
+verdadero:
 
-Si la base de producción arranca limpia (que es el caso: `grid` no existía),
-**este paso no hace falta** — la migración crea las tablas vacías y solo la
-biblioteca llega con contenido.
+- **La biblioteca** — 153 documentos sincronizados del cronograma.
+- **Las capacitaciones** — 6, armadas desde ese mismo cronograma: sus 15
+  materiales apuntan a archivos reales de Drive y 18 de sus 24 temas tienen
+  grabación.
 
-Solo por si alguna vez hay que limpiar:
+Lo demás eran datos de ejemplo, cargados para poder ver el diseño. **Ya se
+borraron de producción** (62 filas: herramientas, la ruta, la FAQ y la
+comunidad).
+
+Si alguna vez hiciera falta repetirlo:
 
 ```bash
-CONFIRMAR=si \
-DATABASE_URL="<la cadena de Neon>" \
-npm run db:limpiar:prod
+CONFIRMAR=si DATABASE_URL="<la cadena de Neon>" npm run db:limpiar:prod
 ```
 
-Borra herramientas, capacitaciones, rutas, FAQ, comunidad y lo personal que
-cuelga de ellas. **Conserva** la biblioteca, las automatizaciones, el `SyncLog`
-y los administradores — y aborta con error si el número de documentos cambia.
+Va en **una transacción** y cuenta antes y después: si el borrado tocara algo
+que debía conservarse, deshace todo y aborta. Es idempotente — sobre una base
+ya limpia borra 0 filas.
+
+> Hay dos versiones del script: `db:limpiar` (local, vía Prisma) y
+> `db:limpiar:prod` (producción, vía `pg` con SQL directo). No es un capricho:
+> desde esta máquina el motor de Prisma no alcanza el servidor de Neon, ni por
+> el pooler ni por el endpoint directo, mientras que `pg` conecta sin problema.
 
 ---
 
 ## Comprobar que quedó bien
 
 1. Entra con tu cuenta. El inicio de sesión debe **cerrar** y dejarte dentro.
-2. **Biblioteca**: deben salir los **152 documentos**, agrupados por sección.
+2. **Biblioteca**: deben salir los **153 documentos**, agrupados por sección.
+   (Eran 152 al inspeccionar; el cronograma ganó uno por el camino.)
 3. Abre uno: el visor de Drive debe cargarlo **con tu propia cuenta** — ves lo
    que ya tenías permiso de ver, ni más ni menos.
 4. Pulsa **Sincronizar**: debe leer el cronograma y decir cuántos actualizó.
 5. Si ya habías entrado en el portal o Deal Engine en ese navegador, **no debe
    pedirte cuenta otra vez**. Eso confirma que el `AUTH_SECRET` quedó bien.
-6. Las demás secciones saldrán **vacías**. Es lo esperado.
+6. **Capacitaciones**: deben salir **6**, con sus videos y materiales.
+7. Herramientas, Mi ruta, FAQ y Comunidad saldrán **vacías**. Es lo esperado:
+   su contenido se carga desde Administración cuando haga falta.
 
 ---
 
