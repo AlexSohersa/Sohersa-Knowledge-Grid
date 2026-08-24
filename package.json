@@ -17,7 +17,9 @@
     "db:migrate": "dotenv -e .env.local -- node scripts/aplicar-migracion.mjs",
     "db:migrate:prod": "node scripts/aplicar-migracion.mjs",
     "db:limpiar": "dotenv -e .env.local -- tsx scripts/limpiar-ejemplos.ts",
-    "db:limpiar:prod": "tsx scripts/limpiar-ejemplos-sql.ts"
+    "db:limpiar:prod": "tsx scripts/limpiar-ejemplos-sql.ts",
+    "faq:demo": "tsx scripts/faq-demo.ts",
+    "faq:demo:borrar": "tsx scripts/faq-demo.ts --borrar"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
