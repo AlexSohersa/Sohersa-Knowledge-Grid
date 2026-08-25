@@ -71,6 +71,7 @@ el código ya trae el valor correcto por omisión.
 | `ALLOWED_EMAILS` | Solo si hay que dejar entrar correos de fuera del dominio, separados por comas |
 | `ALLOWED_DOMAIN` | Solo si cambia el dominio corporativo; ya es `gruposohersa.com` |
 | `CRONOGRAMA_SHEET_ID` | Solo para apuntar a otro cronograma; ya trae el real |
+| `FAQ_CAPTURAS_CARPETA` | Solo para archivar las capturas en otra carpeta de Drive; ya apunta a «FAQ Web» |
 
 > **Crearlas y dejarlas en blanco no es lo mismo que no crearlas.** Vercel
 > guarda la variable aunque el campo quede vacío, y el código la recibe como
@@ -153,34 +154,45 @@ que no se pueda migrar producción por accidente.
 
 ---
 
-## Paso 4 · Dejar solo lo real  ✔ hecho
+## Paso 4 · Los datos  ✔ hecho
 
-En producción se estrenan **dos** secciones, y las dos tienen contenido
-verdadero:
+Producción ya tiene lo que debe:
 
-- **La biblioteca** — 153 documentos sincronizados del cronograma.
-- **Las capacitaciones** — 6, armadas desde ese mismo cronograma: sus 15
-  materiales apuntan a archivos reales de Drive y 18 de sus 24 temas tienen
-  grabación.
+| | |
+|---|---|
+| Biblioteca | **153** documentos del cronograma |
+| Capacitaciones | **6**, con sus videos y materiales |
+| **Preguntas frecuentes** | **78** fichas de Revit y Autodesk Forma, **51 con captura** |
+| Herramientas, rutas, comunidad | vacías, a propósito |
 
-Lo demás eran datos de ejemplo, cargados para poder ver el diseño. **Ya se
-borraron de producción** (62 filas: herramientas, la ruta, la FAQ y la
-comunidad).
-
-Si alguna vez hiciera falta repetirlo:
+Las fichas se importaron del Excel del área. Para volver a hacerlo cuando
+publiquen una versión nueva —la V11, por ejemplo—: se copia el `.xlsx` a
+`datos/` y se corre
 
 ```bash
-CONFIRMAR=si DATABASE_URL="<la cadena de Neon>" npm run db:limpiar:prod
+CONFIRMAR=si DATABASE_URL="<la cadena de Neon>" npm run faq:importar:prod
 ```
 
-Va en **una transacción** y cuenta antes y después: si el borrado tocara algo
-que debía conservarse, deshace todo y aborta. Es idempotente — sobre una base
-ya limpia borra 0 filas.
+Actualiza por código en vez de duplicar, y **respeta los votos** de «¿te
+sirvió?» que la gente ya dio.
 
-> Hay dos versiones del script: `db:limpiar` (local, vía Prisma) y
-> `db:limpiar:prod` (producción, vía `pg` con SQL directo). No es un capricho:
-> desde esta máquina el motor de Prisma no alcanza el servidor de Neon, ni por
-> el pooler ni por el endpoint directo, mientras que `pg` conecta sin problema.
+> Lee el `.xlsx` y no un CSV a propósito: los pasos de cada solución van
+> separados por saltos de línea DENTRO de la celda, y esos saltos no
+> sobreviven a la exportación a texto.
+>
+> Y **ignora la columna `Imagen error`**, que está rota: 51 de sus 78 celdas
+> traen `#VALUE!` de una fórmula que falló. Las capturas se emparejan por
+> CÓDIGO contra la carpeta de Drive, y así son 51 fichas con imagen en vez
+> de las 5 que declara el Excel.
+
+### Si hiciera falta limpiar pruebas
+
+```bash
+CONFIRMAR=si DATABASE_URL="…" npm run faq:limpiar-pruebas
+```
+
+Retira lo que no venga del catálogo —fichas de prueba, propuestas,
+comentarios y avisos— y **aborta si el número de fichas oficiales cambia**.
 
 ---
 
@@ -195,8 +207,10 @@ ya limpia borra 0 filas.
 5. Si ya habías entrado en el portal o Deal Engine en ese navegador, **no debe
    pedirte cuenta otra vez**. Eso confirma que el `AUTH_SECRET` quedó bien.
 6. **Capacitaciones**: deben salir **6**, con sus videos y materiales.
-7. Herramientas, Mi ruta, FAQ y Comunidad saldrán **vacías**. Es lo esperado:
-   su contenido se carga desde Administración cuando haga falta.
+7. **Preguntas frecuentes**: **78** fichas. Abre `RVT-004` y comprueba que se
+   vea su captura — se sirve con tu cuenta de Drive, no con una de servicio.
+8. **Administración → El equipo**: deben salir las 53 personas del padrón.
+9. Herramientas, Mi ruta y Comunidad saldrán **vacías**. Es lo esperado.
 
 ---
 
