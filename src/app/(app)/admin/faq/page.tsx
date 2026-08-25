@@ -1,19 +1,43 @@
 import Link from "next/link";
 import { exigirSesion } from "@/lib/grid/session";
-import { listarFaqWired } from "@/modules/faq/infrastructure/wiring";
+import {
+  listarComentariosWired,
+  listarFaqWired,
+  listarPropuestasWired,
+} from "@/modules/faq/infrastructure/wiring";
 import { necesitaRevision, utilidad } from "@/modules/faq/domain/faq";
 import { Icon } from "@/components/layout/icons";
 import { Pill } from "@/components/ui/Pill";
 import { PageHead } from "@/components/ui/PageHead";
 import { FormularioFaq } from "@/components/admin/FormularioFaq";
 import { BorrarFaq } from "@/components/admin/BorrarFaq";
+import { BandejaPropuestas } from "@/components/admin/BandejaPropuestas";
+import { OrdenarCapturas } from "@/components/admin/OrdenarCapturas";
 
 export const revalidate = 0;
 
 /** Administrar preguntas frecuentes. */
 export default async function AdminFaqPage() {
   const yo = await exigirSesion();
-  const { categorias, total } = await listarFaqWired(yo.email, { incluirBorradores: true });
+
+  /* Las tres en paralelo: son independientes y encadenarlas sumaría tiempos. */
+  const [{ categorias, total }, propuestas, comentarios] = await Promise.all([
+    listarFaqWired(yo.email, { incluirBorradores: true }),
+    listarPropuestasWired("PENDIENTE"),
+    listarComentariosWired(true),
+  ]);
+
+  const nombresCategoria = categorias.map((c) => c.name);
+  /* Las categorías (software) que ya se usan, para clasificar al aprobar. */
+  const plataformas = [
+    ...new Set(categorias.flatMap((c) => c.items).map((f) => f.platform).filter(Boolean)),
+  ] as string[];
+
+  /* Los códigos que ya existen, para proponer el siguiente de cada serie. */
+  const codigosUsados = categorias
+    .flatMap((c) => c.items)
+    .map((f) => f.code)
+    .filter(Boolean) as string[];
 
   return (
     <div style={{ padding: "24px 32px 44px" }}>
@@ -44,6 +68,19 @@ export default async function AdminFaqPage() {
         title="Preguntas frecuentes"
         description="La respuesta oficial de la empresa a lo que más se pregunta"
         accent="var(--kc-amber)"
+      />
+
+      <div style={{ marginBottom: 18 }}>
+        <OrdenarCapturas />
+      </div>
+
+      {/* Lo que tiene a alguien esperando respuesta va arriba del todo. */}
+      <BandejaPropuestas
+        propuestas={propuestas}
+        comentarios={comentarios}
+        categorias={nombresCategoria}
+        plataformas={plataformas}
+        codigosUsados={codigosUsados}
       />
 
       <div

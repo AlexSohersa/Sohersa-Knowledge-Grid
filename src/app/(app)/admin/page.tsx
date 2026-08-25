@@ -6,6 +6,7 @@ import { listarFaqWired } from "@/modules/faq/infrastructure/wiring";
 import { listarHerramientasWired } from "@/modules/herramientas/infrastructure/wiring";
 import { necesitaRevision } from "@/modules/faq/domain/faq";
 import { PageHead } from "@/components/ui/PageHead";
+import { listarColaboradores } from "@/modules/personas/infrastructure/wiring";
 import { Pill } from "@/components/ui/Pill";
 import { Icon, type IconName } from "@/components/layout/icons";
 
@@ -21,13 +22,16 @@ export const revalidate = 0;
 export default async function AdminPage() {
   const yo = await exigirSesion();
 
-  const [caps, rutas, faq, herramientas] = await Promise.all([
+  const [caps, rutas, faq, herramientas, equipo] = await Promise.all([
     // Con borradores: administración necesita ver lo que todavía no se publica.
     listarCapacitacionesWired({ incluirBorradores: true }),
     listarRutasWired(),
     listarFaqWired(yo.email, { incluirBorradores: true }),
     listarHerramientasWired({ incluirInactivas: true }),
+    listarColaboradores(),
   ]);
+
+  const personas = equipo.length;
 
   const borradores = caps.items.filter((c) => c.status === "BORRADOR");
   const publicadas = caps.items.filter((c) => c.status === "PUBLICADA");
@@ -140,6 +144,18 @@ export default async function AdminPage() {
               {faqsPorRevisar.length} por revisar
             </Pill>
           )}
+        </Panel>
+
+        <Panel
+          icono="me"
+          titulo="El equipo"
+          href="/admin/equipo"
+          acento="var(--kc-teal)"
+          descripcion="Quién administra, quién revisa el FAQ y qué secciones ve cada quien."
+        >
+          <Pill soft="var(--kc-cap-soft)" ink="var(--kc-cap-ink)" size="sm">
+            {personas} en el padrón
+          </Pill>
         </Panel>
 
         <Panel

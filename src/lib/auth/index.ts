@@ -177,11 +177,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const nuevo = (await r.json()) as {
               access_token?: string;
               expires_in?: number;
+              scope?: string;
             };
             if (nuevo.access_token) {
               token.googleAccess = nuevo.access_token;
               token.googleExpires =
                 Math.floor(Date.now() / 1000) + (nuevo.expires_in ?? 3600);
+
+              /*
+               * Los permisos, al día en cada renovación.
+               *
+               * `grantedScopes` solo se escribía en el instante del inicio de
+               * sesión, así que una sesión abierta desde antes lo traía vacío
+               * para siempre —y eso hacía imposible saber qué permisos tiene
+               * quien lleva semanas sin cerrar sesión—. Google los devuelve
+               * también al renovar, y aprovecharlo los mantiene frescos sin
+               * pedirle nada a nadie.
+               */
+              if (nuevo.scope) token.grantedScopes = nuevo.scope;
             }
           } else if (r.status === 400 || r.status === 401) {
             /*

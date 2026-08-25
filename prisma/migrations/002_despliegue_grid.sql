@@ -645,21 +645,33 @@ END $$;
 -- `ON CONFLICT DO NOTHING` hace el paso repetible: si la migración se corre dos
 -- veces, la segunda no duplica ni pisa nada.
 
-INSERT INTO "grid"."Resource" (
-  "id", "code", "title", "section", "position", "fileName", "driveId", "url",
-  "mimeType", "sizeBytes", "author", "training", "priority", "required",
-  "notes", "progress", "origin", "createdBy", "updatedAt", "createdAt"
-)
-SELECT
-  "id", "code", "title", "section", "position", "fileName", "driveId", "url",
-  "mimeType", "sizeBytes", "author", "training", "priority", "required",
-  "notes", "progress", "origin", "createdBy", "updatedAt", "createdAt"
-FROM "public"."Resource"
-WHERE EXISTS (
-  SELECT 1 FROM information_schema.tables
-  WHERE table_schema = 'public' AND table_name = 'Resource'
-)
-ON CONFLICT ("id") DO NOTHING;
+-- El SELECT va dentro de EXECUTE, no en un `WHERE EXISTS`: Postgres resuelve
+-- los nombres de tabla al PLANIFICAR la sentencia, antes de evaluar ninguna
+-- condición, así que una consulta que nombra `public."Resource"` falla con
+-- "relation does not exist" aunque la condición la hubiera saltado. Y esa
+-- tabla desaparece en cuanto el portal retira su sección de Recursos —ya pasó
+-- en producción—, de modo que la migración dejaba de ser repetible.
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'Resource'
+  ) THEN
+    EXECUTE '
+      INSERT INTO "grid"."Resource" (
+        "id", "code", "title", "section", "position", "fileName", "driveId", "url",
+        "mimeType", "sizeBytes", "author", "training", "priority", "required",
+        "notes", "progress", "origin", "createdBy", "updatedAt", "createdAt"
+      )
+      SELECT
+        "id", "code", "title", "section", "position", "fileName", "driveId", "url",
+        "mimeType", "sizeBytes", "author", "training", "priority", "required",
+        "notes", "progress", "origin", "createdBy", "updatedAt", "createdAt"
+      FROM "public"."Resource"
+      ON CONFLICT ("id") DO NOTHING';
+  END IF;
+END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- El puente al padrón

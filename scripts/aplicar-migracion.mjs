@@ -38,13 +38,28 @@ if (destino !== "LOCAL" && !process.env.CONFIRMAR_PRODUCCION) {
   process.exit(1);
 }
 
-const sql = readFileSync(new URL("../prisma/migrations/002_despliegue_grid.sql", import.meta.url), "utf8");
+/*
+ * Las migraciones vigentes, EN ORDEN.
+ *
+ * Se listan a mano en vez de leer la carpeta: `001` quedó obsoleta —creaba las
+ * tablas sin esquema y las colgaba de `TeamMember`— y un `readdir` la
+ * arrastraría. Como todas son idempotentes, aplicarlas siempre todas deja la
+ * base al día sin llevar registro de cuál se corrió.
+ */
+const MIGRACIONES = ["002_despliegue_grid.sql", "003_faq_bim.sql"];
+
 const client = new Client({ connectionString: url });
 
 try {
   await client.connect();
-  await client.query(sql);
-  console.log("Migración aplicada.");
+
+  for (const nombre of MIGRACIONES) {
+    const sql = readFileSync(new URL(`../prisma/migrations/${nombre}`, import.meta.url), "utf8");
+    await client.query(sql);
+    console.log(`  aplicada  ${nombre}`);
+  }
+
+  console.log("\nBase al día.");
 } catch (e) {
   console.error("Falló la migración:", e.message);
   process.exit(1);

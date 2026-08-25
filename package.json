@@ -18,8 +18,10 @@
     "db:migrate:prod": "node scripts/aplicar-migracion.mjs",
     "db:limpiar": "dotenv -e .env.local -- tsx scripts/limpiar-ejemplos.ts",
     "db:limpiar:prod": "tsx scripts/limpiar-ejemplos-sql.ts",
-    "faq:demo": "tsx scripts/faq-demo.ts",
-    "faq:demo:borrar": "tsx scripts/faq-demo.ts --borrar"
+    "faq:importar": "dotenv -e .env.local -- tsx scripts/importar-faq-bim.ts",
+    "faq:importar:prod": "tsx scripts/importar-faq-bim.ts",
+    "faq:limpiar-pruebas": "dotenv -e .env.local -- tsx scripts/limpiar-pruebas-faq.ts",
+    "faq:limpiar-pruebas:prod": "tsx scripts/limpiar-pruebas-faq.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -33,7 +35,8 @@
     "prisma": "^6.19.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

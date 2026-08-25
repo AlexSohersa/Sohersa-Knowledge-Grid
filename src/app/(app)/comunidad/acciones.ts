@@ -1,6 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  avisarAdminsWired,
+  avisarWired,
+} from "@/modules/notificaciones/infrastructure/wiring";
 import { redirect } from "next/navigation";
 import { exigirSesion } from "@/lib/grid/session";
 import {
@@ -13,6 +17,7 @@ import {
   promoverAFaqWired,
   responderWired,
   validarComoSolucionWired,
+  verPreguntaWired,
 } from "@/modules/comunidad/infrastructure/wiring";
 
 /**
@@ -53,6 +58,18 @@ export async function preguntar(
 
   if (!res.ok) return { ok: false, error: res.error, errores: res.errores };
 
+  /*
+   * Aviso a quien administra. Va antes del `redirect` porque ese lanza una
+   * excepción de control de flujo y nada de lo que quede después se ejecuta.
+   */
+  await avisarAdminsWired({
+    kind: "PREGUNTA_NUEVA",
+    title: "Pregunta nueva en la comunidad",
+    body: `${yo.name}: ${String(form.get("title") ?? "").slice(0, 80)}`,
+    href: `/comunidad/${res.valor}`,
+    ref: String(res.valor),
+  }).catch(() => undefined);
+
   revalidatePath("/comunidad");
   // `redirect` lanza una excepción de control de flujo: tiene que ir FUERA de
   // cualquier try/catch, o se capturaría como si fuera un error.
@@ -74,6 +91,28 @@ export async function responder(
   });
 
   if (!res.ok) return { ok: false, error: res.error };
+
+  /*
+   * Avisar a quien preguntó: es el aviso que de verdad se espera.
+   *
+   * No se avisa a quien se responde a sí mismo —sabe perfectamente que acaba
+   * de escribir—. El `ref` lleva el id de la RESPUESTA, no el de la pregunta,
+   * para que dos respuestas distintas produzcan dos avisos y no se descarte la
+   * segunda como repetida.
+   */
+  const pregunta = await verPreguntaWired(yo.email, preguntaId).catch(() => null);
+  const autor = pregunta?.email ?? null;
+
+  if (autor && autor.toLowerCase() !== yo.email.toLowerCase()) {
+    await avisarWired({
+      email: autor,
+      kind: "RESPUESTA_A_TU_PREGUNTA",
+      title: "Respondieron tu pregunta",
+      body: `${yo.name} respondió: ${pregunta?.title.slice(0, 70) ?? ""}`,
+      href: `/comunidad/${preguntaId}`,
+      ref: String(res.valor ?? preguntaId),
+    }).catch(() => undefined);
+  }
 
   revalidatePath(`/comunidad/${preguntaId}`);
   revalidatePath("/comunidad");

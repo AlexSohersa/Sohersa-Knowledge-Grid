@@ -15,7 +15,15 @@ import { Icon } from "./icons";
  * resultado se puede compartir por enlace y el botón de atrás del navegador
  * funciona como se espera.
  */
-export function TopBar({ guardados }: { guardados: number }) {
+export function TopBar({
+  guardados,
+  avisos,
+}: {
+  guardados: number;
+  /* La campana llega ya construida desde el layout: este componente corre en
+     el cliente y no puede consultar los avisos por su cuenta. */
+  avisos?: React.ReactNode;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -125,6 +133,8 @@ export function TopBar({ guardados }: { guardados: number }) {
       </form>
 
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 9 }}>
+        {avisos}
+
         <Link
           href="/guardados"
           title="Guardados"

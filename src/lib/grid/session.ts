@@ -126,3 +126,25 @@ export async function exigirSesion(): Promise<CurrentUser> {
   if (!yo) throw new Error("Se esperaba una sesión activa y no la hay.");
   return yo;
 }
+
+/**
+ * Las áreas que existen en el padrón.
+ *
+ * Sirve para que los formularios ofrezcan un desplegable en vez de un campo
+ * libre: escrita a mano, «Transformación Digital» acaba de cuatro maneras
+ * distintas y la bandeja del área deja de poder agruparse.
+ */
+export const areasDelPadron = cache(async function areasDelPadron(): Promise<string[]> {
+  if (!dbConfigured) return [];
+
+  const filas = await db()
+    .persona.findMany({
+      where: { area: { not: null }, activo: true },
+      select: { area: true },
+      distinct: ["area"],
+      orderBy: { area: "asc" },
+    })
+    .catch(() => []);
+
+  return filas.map((f) => f.area!).filter(Boolean);
+});

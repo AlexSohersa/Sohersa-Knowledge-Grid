@@ -59,12 +59,16 @@ async function clienteDeLaSesion() {
     );
   }
 
-  const scopes = session.user.grantedScopes ?? "";
-  if (!scopes.includes("spreadsheets")) {
-    throw new GoogleAuthError(
-      "Falta el permiso de Google Sheets. Cierra sesión y vuelve a entrar para concederlo.",
-    );
-  }
+  /*
+   * El permiso se comprueba EN CADA CLIENTE, no aquí.
+   *
+   * Antes esta función exigía el scope de Sheets a todo el mundo, y eso dejaba
+   * sin funcionar cosas que solo tocan Drive —las capturas de las fichas, por
+   * ejemplo— a quien tuviera una sesión sin ese permiso concreto. Pedir de más
+   * es tan malo como pedir de menos: convierte un fallo de permisos en un
+   * misterio, porque el mensaje habla de Sheets mientras lo que no carga es una
+   * imagen.
+   */
 
   const oauth = new google.auth.OAuth2(
     process.env.AUTH_GOOGLE_ID,
@@ -102,6 +106,27 @@ async function clienteDeLaSesion() {
 
   return oauth;
 }
+
+/**
+ * POR QUÉ AQUÍ NO SE COMPRUEBAN LOS PERMISOS.
+ *
+ * La tentación es mirar `session.user.grantedScopes` y negarse antes de llamar
+ * a Google. No funciona, y costó descubrirlo: ese campo se escribe UNA VEZ, en
+ * el instante del inicio de sesión (`jwt` solo lo toca cuando llega `account`),
+ * así que cualquier sesión abierta antes de que ese código existiera lo trae
+ * vacío. Y vacío no significa «sin permisos», significa «no consta».
+ *
+ * El resultado era el peor posible: gente con acceso de sobra recibía «falta el
+ * permiso de Google Drive» y se le pedía cerrar sesión sin motivo, mientras la
+ * biblioteca —que muestra los PDF en un iframe, donde autentica el navegador y
+ * no la app— seguía funcionando. Dos comportamientos distintos para los mismos
+ * permisos, que es justo lo que vuelve loco a quien lo usa.
+ *
+ * QUIEN DECIDE ES GOOGLE. Si de verdad falta un permiso, la llamada falla con
+ * su propio error y ese sí es real. El token de acceso, además, se renueva solo
+ * con el `refresh_token` que guarda el padrón, así que esto no caduca a las
+ * tres horas.
+ */
 
 /** Cliente de Google Sheets para la persona con sesión activa. */
 export async function getSheetsClient() {

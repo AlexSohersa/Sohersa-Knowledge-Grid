@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { Rail, type RailItem } from "@/components/layout/Rail";
 import { TopBar } from "@/components/layout/TopBar";
 import { usuarioActual } from "@/lib/grid/session";
+import { Campana } from "@/components/layout/Campana";
+import {
+  misAvisosWired,
+  sinLeerWired,
+} from "@/modules/notificaciones/infrastructure/wiring";
 import { contarGuardadosWired } from "@/modules/personal/infrastructure/wiring";
 import { misRutasWired } from "@/modules/rutas/infrastructure/wiring";
 import { listarBibliotecaWired } from "@/modules/biblioteca/infrastructure/wiring";
@@ -25,11 +30,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // persona.
   if (!yo) redirect("/login");
 
-  const [guardados, rutas, biblioteca, capacitaciones] = await Promise.all([
+  const [guardados, rutas, biblioteca, capacitaciones, avisos, sinLeer] = await Promise.all([
     contarGuardadosWired(yo.email),
     misRutasWired(yo.email),
     listarBibliotecaWired(yo.email),
     listarCapacitacionesWired(),
+    misAvisosWired(yo.email),
+    sinLeerWired(yo.email),
   ]);
 
   /*
@@ -128,7 +135,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             />
           }
         >
-          <TopBar guardados={guardados} />
+          <TopBar guardados={guardados} avisos={<Campana avisos={avisos} sinLeer={sinLeer} />} />
         </Suspense>
         <main style={{ flex: 1, minHeight: 0 }}>{children}</main>
       </div>

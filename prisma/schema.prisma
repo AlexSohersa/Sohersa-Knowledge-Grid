@@ -93,6 +93,13 @@ model Persona {
   comentarios    AnswerComment[]
   admin          GridAdmin?
 
+  /// Lo propuesto y comentado sobrevive a la baja de quien lo escribió —es
+  /// conocimiento del equipo—, pero los avisos no: son de utilidad solo para
+  /// su destinatario.
+  propuestasFaq   FaqPropuesta[]
+  comentariosFaq  FaqComentario[]
+  notificaciones  Notificacion[]
+
   correos PersonaCorreo[]
 
   @@map("persona")
@@ -573,6 +580,55 @@ model FaqEntry {
   /// Los pasos concretos, cuando la respuesta es un procedimiento.
   steps    String[] @default([])
 
+  /* ───────────────────────────────────────────────────────────────────────
+   * LA FICHA DEL PROBLEMA
+   *
+   * Todo lo de aquí abajo es opcional: una FAQ escrita a mano —"¿cada cuánto
+   * subo mi modelo?"— no tiene código ni captura de error, y sigue siendo una
+   * FAQ válida. Solo las fichas que vienen del catálogo BIM las llevan.
+   *
+   * Se añadieron a esta tabla y no a otra nueva a propósito: dos tablas serían
+   * dos secciones de preguntas frecuentes en el menú, y quien busca una
+   * respuesta no debería tener que adivinar en cuál mirar.
+   * ─────────────────────────────────────────────────────────────────────── */
+
+  /// El código del catálogo: `RVT-001`, `FRM-011`. Es la llave que usa el
+  /// equipo para hablar entre sí ("checa la RVT-041"), así que se conserva tal
+  /// cual y NUNCA se renumera: los enlaces guardados apuntan a él.
+  code String? @unique
+
+  /// El software donde ocurre: Revit, Autodesk Forma, Navisworks…
+  /// Es el primer filtro de la pantalla, antes que la categoría.
+  platform String?
+
+  /// El mensaje de error TAL CUAL lo muestra el programa, entre comillas.
+  /// Es lo que la gente copia y pega al buscar, así que se guarda literal.
+  errorMessage String?
+
+  /// Qué se ve cuando pasa. Describe el problema desde fuera, sin explicarlo.
+  symptom String?
+
+  /// Por qué pasa. Puede faltar: hay problemas cuya causa no está clara.
+  cause String?
+
+  /// La otra vía, cuando la solución recomendada no aplica o no funciona.
+  /// En la ficha va plegada: se lee solo si la primera falló.
+  altSteps String[] @default([])
+
+  /// Lo que conviene tener en cuenta después de resolverlo.
+  recommendations String?
+
+  /// Términos por los que alguien buscaría esto, en español e inglés y con los
+  /// nombres de menú del programa. Es lo que hace encontrable una ficha cuando
+  /// nadie recuerda cómo se llamaba el problema.
+  keywords String[] @default([])
+
+  /// La captura del error, en Drive. Es el bloque más grande de la ficha:
+  /// reconocer la pantalla propia confirma que se llegó al sitio correcto
+  /// antes de leer una sola palabra.
+  imageDriveId String?
+  imageName    String?
+
   /* ── Lo relacionado, ahora con FK reales ── */
   resourceId String?
   resource   Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
@@ -595,6 +651,12 @@ model FaqEntry {
 
   votes FaqVote[]
 
+  /// Otras fichas que conviene mirar, por su código. Se guardan los CÓDIGOS y
+  /// no claves foráneas porque el catálogo se importa por lotes y una ficha
+  /// puede referenciar a otra que todavía no existe; una FK obligaría a
+  /// ordenar la importación o a dejar el enlace fuera.
+  relatedCodes String[] @default([])
+
   published Boolean  @default(true)
   createdBy String?
   updatedAt DateTime @updatedAt
@@ -602,6 +664,146 @@ model FaqEntry {
 
   @@index([category, position])
   @@index([published])
+  /// Los dos filtros de la pantalla principal, en el orden en que se aplican.
+  @@index([platform, category])
+
+  @@schema("grid")
+}
+
+/// Una FAQ que alguien propuso y todavía no es FAQ.
+///
+/// Vive aparte de `FaqEntry` a propósito: mezclarlas obligaría a filtrar por
+/// estado en cada consulta de la pantalla pública, y bastaría con olvidarlo una
+/// vez para publicar un borrador sin revisar. Separadas, lo que está en `FaqEntry`
+/// está aprobado por definición.
+///
+/// Al aprobarse se copia a `FaqEntry` y esta fila se conserva con su resolución:
+/// es el registro de quién propuso qué y quién lo revisó.
+model FaqPropuesta {
+  id String @id @default(cuid())
+
+  /* ── Lo que llena quien propone ── */
+  title       String
+  description String
+  /// El software donde ocurre. Opcional: quien reporta no siempre sabe si el
+  /// problema es de Revit o del conector.
+  platform String?
+  /// Lo que ya intentó o cree que lo resuelve. Opcional.
+  solution String?
+  /// La captura, si la adjuntó.
+  imageDriveId String?
+  imageName    String?
+
+  /* ── Quién la propone ── */
+  email String
+  /// La columna puente al padrón. NO se escribe desde la app: un disparador
+  /// (`core.enlazar_persona`) la rellena al insertar.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
+  /// Nombre y área AL MOMENTO de proponer: si la persona cambia de puesto, la
+  /// propuesta debe seguir diciendo desde dónde se hizo.
+  authorName String
+  authorArea String?
+
+  /* ── Cómo terminó ── */
+  /// PENDIENTE · APROBADA · RECHAZADA
+  status String @default("PENDIENTE")
+  /// Quién la revisó y qué dijo. `reviewNote` explica un rechazo, que sin
+  /// motivo se vive como un portazo.
+  reviewedBy String?
+  reviewNote String?
+  reviewedAt DateTime?
+  /// La FAQ que salió de aquí, si se aprobó.
+  faqId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+
+  @@schema("grid")
+}
+
+/// Un comentario para el área de Estandarización y Calidad.
+///
+/// No es una pregunta de la comunidad —que se responde en público— sino un
+/// mensaje directo al área: un error detectado, una sugerencia, una ficha que
+/// hace falta. Por eso no tiene respuestas ni votos: tiene destinatario.
+model FaqComentario {
+  id String @id @default(cuid())
+
+  message String
+  /// La ficha sobre la que se comenta, si vino del botón de una.
+  faqId String?
+
+  email String
+  /// La columna puente al padrón, que rellena el disparador.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
+  authorName String
+  authorArea String?
+
+  /// PENDIENTE · ACEPTADO · RECHAZADO
+  ///
+  /// Aceptar y rechazar no son lo mismo: un comentario ACEPTADO se publica bajo
+  /// su ficha —es la aportación de alguien del equipo— y uno RECHAZADO no. Con
+  /// solo `resolved` los dos dejaban la misma huella.
+  status     String    @default("PENDIENTE")
+  reviewNote String?
+  resolved   Boolean   @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([resolved, createdAt])
+  /// La consulta de la ficha: los aceptados de un documento.
+  @@index([faqId, status])
+
+  @@schema("grid")
+}
+
+/// Un aviso dirigido a UNA persona.
+///
+/// Existe como tabla —y no como cálculo al vuelo sobre lo que ya se ve en
+/// pantalla— porque los avisos que hacen falta aquí son de cosas que pasaron
+/// mientras esa persona NO estaba mirando: que respondieron su pregunta, que
+/// hay una propuesta esperando revisión. Eso no se puede derivar de la pantalla
+/// actual, y guardar lo leído en el navegador lo perdería al cambiar de equipo.
+model Notificacion {
+  id String @id @default(cuid())
+
+  /// A quién va. Es el correo y no el id porque el correo es la llave con la
+  /// que esta plataforma identifica a las personas entre sus cuatro apps.
+  email String
+  /// La columna puente al padrón, que rellena el disparador.
+  persona_id String?
+  persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+
+  /// Qué clase de aviso: FAQ_PROPUESTA · FAQ_RESUELTA · PREGUNTA_NUEVA ·
+  /// RESPUESTA_A_TU_PREGUNTA · COMENTARIO_NUEVO
+  kind  String
+  title String
+  /// Una línea de contexto: el título de la pregunta, quién respondió.
+  body String?
+  /// A dónde lleva al pulsarla.
+  href String?
+
+  /// La clave que evita duplicados y permite REVIVIR un aviso.
+  ///
+  /// Idea tomada de la campana de Deal Engine: la clave incluye aquello que,
+  /// si cambia, convierte el aviso en uno nuevo. Dos respuestas a la misma
+  /// pregunta son dos avisos; el mismo hecho registrado dos veces, uno solo.
+  dedupeKey String
+
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  /// Un aviso por persona y hecho: el `dedupeKey` ya lleva el correo dentro.
+  @@unique([email, dedupeKey])
+  /// La consulta de la campana: lo de esta persona, lo más reciente primero.
+  @@index([email, readAt, createdAt])
 
   @@schema("grid")
 }
@@ -838,7 +1040,28 @@ model GridAdmin {
   persona_id String?  @unique
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
 
+  /* ── Qué puede hacer ─────────────────────────────────────────────────
+   * La fila deja de significar solo «administra»: ahora guarda los tres
+   * permisos que existen. Se amplió esta tabla en vez de crear otra porque
+   * una segunda tabla de permisos por correo obligaría a mirar en dos sitios
+   * para responder «¿qué puede hacer esta persona?». */
+
+  /// Administra Knowledge Grid: capacitaciones, rutas y permisos.
+  esAdmin Boolean @default(true)
+
+  /// Revisa las propuestas y los comentarios del FAQ.
+  ///
+  /// Separado de `esAdmin` a propósito: quien mantiene el catálogo de problemas
+  /// —Estandarización y Calidad— no tiene por qué poder tocar las rutas de
+  /// formación ni los permisos de nadie.
+  revisaFaq Boolean @default(false)
+
+  /// Las secciones que ve. VACÍO significa todas, no ninguna: lo normal es que
+  /// todo el mundo vea todo, y restringir es la excepción.
+  secciones String[] @default([])
+
   grantedBy String?
+  updatedAt DateTime @default(now()) @updatedAt
   createdAt DateTime   @default(now())
 
   @@schema("grid")
