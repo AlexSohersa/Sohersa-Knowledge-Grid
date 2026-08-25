@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import {
   registrarVistaPreguntaWired,
   verPreguntaWired,
@@ -29,7 +29,7 @@ export default async function PreguntaPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("comunidad");
 
   const pregunta = await verPreguntaWired(yo.email, id);
   if (!pregunta) notFound();

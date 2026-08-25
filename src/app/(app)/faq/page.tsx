@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import { listarFaqWired } from "@/modules/faq/infrastructure/wiring";
 import { PageHead, EmptyState } from "@/components/ui/PageHead";
 import { FaqExplorador } from "@/components/faq/FaqExplorador";
@@ -18,7 +18,7 @@ export const revalidate = 0;
  * con su código y su botón de entrar.
  */
 export default async function FaqPage() {
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("faq");
   const { categorias, total } = await listarFaqWired(yo.email);
 
   // La pantalla filtra por su cuenta; se le pasa el catálogo entero.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { exigirSeccion } from "@/lib/grid/session";
 import { listarHerramientasWired } from "@/modules/herramientas/infrastructure/wiring";
 import { estiloAdopcion, etiquetaAdopcion } from "@/modules/herramientas/domain/herramienta";
 import { EmptyState } from "@/components/ui/PageHead";
@@ -15,6 +16,7 @@ export const revalidate = 0;
  * software.
  */
 export default async function HerramientasPage() {
+  await exigirSeccion("herramientas");
   const { items } = await listarHerramientasWired();
 
   return (

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import {
   comentariosDeFichaWired,
   listarFaqWired,
@@ -25,7 +25,7 @@ export default async function FichaPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("faq");
 
   const clave = decodeURIComponent(code);
 

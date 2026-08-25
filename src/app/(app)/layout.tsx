@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Rail, type RailItem } from "@/components/layout/Rail";
 import { TopBar } from "@/components/layout/TopBar";
-import { usuarioActual } from "@/lib/grid/session";
+import { seccionesPermitidas, usuarioActual } from "@/lib/grid/session";
 import { Campana } from "@/components/layout/Campana";
 import {
   misAvisosWired,
@@ -30,13 +30,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // persona.
   if (!yo) redirect("/login");
 
-  const [guardados, rutas, biblioteca, capacitaciones, avisos, sinLeer] = await Promise.all([
+  const [guardados, rutas, biblioteca, capacitaciones, avisos, sinLeer, permitidas] = await Promise.all([
     contarGuardadosWired(yo.email),
     misRutasWired(yo.email),
     listarBibliotecaWired(yo.email),
     listarCapacitacionesWired(),
     misAvisosWired(yo.email),
     sinLeerWired(yo.email),
+    seccionesPermitidas(yo.email),
   ]);
 
   /*
@@ -88,6 +89,33 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/comunidad", label: "Comunidad", icon: "com" },
   ];
 
+  /*
+   * Se quitan del riel las secciones restringidas.
+   *
+   * `permitidas` es `null` cuando no hay restricción, que es lo normal: el
+   * Centro existe para que el conocimiento circule y limitar es la excepción.
+   *
+   * Esconder el enlace NO basta por sí solo —la dirección se puede escribir a
+   * mano—, así que cada página restringible llama además a `exigirSeccion`.
+   * Aquí solo se evita ofrecer un camino que va a acabar en un rebote.
+   */
+  const seccionDe: Record<string, string> = {
+    "/biblioteca": "biblioteca",
+    "/herramientas": "herramientas",
+    "/capacitaciones": "capacitaciones",
+    "/ruta": "ruta",
+    "/faq": "faq",
+    "/comunidad": "comunidad",
+  };
+
+  const visibles =
+    permitidas === null
+      ? principales
+      : principales.filter((i) => {
+          const seccion = seccionDe[i.href];
+          return !seccion || permitidas.includes(seccion);
+        });
+
   const secundarias: RailItem[] = [
     {
       href: "/guardados",
@@ -107,7 +135,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="kc-shell">
       <Rail
-        principales={principales}
+        principales={visibles}
         secundarias={secundarias}
         usuario={{
           name: yo.name,

@@ -1,3 +1,4 @@
+import { exigirSeccion } from "@/lib/grid/session";
 import { listarCapacitacionesWired } from "@/modules/capacitaciones/infrastructure/wiring";
 import { EmptyState } from "@/components/ui/PageHead";
 import { CapacitacionesGaleria } from "@/components/capacitaciones/CapacitacionesGaleria";
@@ -15,6 +16,7 @@ export const revalidate = 0;
  * "Mi ruta", que es otra cosa y se ve distinta a propósito.
  */
 export default async function CapacitacionesPage() {
+  await exigirSeccion("capacitaciones");
   const { items, facetas, totalTemas, totalMateriales } = await listarCapacitacionesWired();
 
   return (

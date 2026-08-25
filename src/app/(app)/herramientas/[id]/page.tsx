@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import { verHerramientaWired } from "@/modules/herramientas/infrastructure/wiring";
 import {
   esApta,
@@ -25,7 +25,7 @@ export default async function HerramientaPage({
 }) {
   const { id } = await params;
   const { de, ref } = await searchParams;
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("herramientas");
 
   const h = await verHerramientaWired(id);
   if (!h) notFound();

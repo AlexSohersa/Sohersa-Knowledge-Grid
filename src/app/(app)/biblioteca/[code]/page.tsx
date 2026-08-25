@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import { verDocumentoWired } from "@/modules/biblioteca/infrastructure/wiring";
 import { registrarVisitaWired, estaGuardadoWired } from "@/modules/personal/infrastructure/wiring";
 import {
@@ -35,7 +35,7 @@ export default async function DocumentoPage({
 }) {
   const { code } = await params;
   const { de, ref } = await searchParams;
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("biblioteca");
 
   const doc = await verDocumentoWired(yo.email, decodeURIComponent(code));
   if (!doc) notFound();

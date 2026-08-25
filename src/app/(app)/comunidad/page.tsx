@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import { listarPreguntasWired } from "@/modules/comunidad/infrastructure/wiring";
 import {
   estadoPregunta,
@@ -26,7 +26,7 @@ export default async function ComunidadPage({
 }: {
   searchParams: Promise<{ estado?: string; categoria?: string }>;
 }) {
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("comunidad");
   const { estado, categoria } = await searchParams;
 
   const { items, categorias, sinResponder, resueltas, total } = await listarPreguntasWired(

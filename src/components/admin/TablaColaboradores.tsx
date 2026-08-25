@@ -287,6 +287,30 @@ function FilaColaborador({ colaborador }: { colaborador: Colaborador }) {
             })}
           </div>
 
+          {/*
+            Quien administra ve todo, y conviene decirlo aquí.
+            Sin este aviso, marcar tres secciones a un administrador parece que
+            no funciona: se guardan bien, pero el permiso de administración pasa
+            por encima. Callarlo lleva a pensar que la pantalla está rota.
+          */}
+          {p.esAdmin && p.secciones.length > 0 && (
+            <p
+              style={{
+                fontSize: 11,
+                color: "var(--kc-faq-ink)",
+                background: "var(--kc-faq-soft)",
+                border: "1px solid rgba(176,124,16,.22)",
+                borderRadius: 8,
+                padding: "8px 11px",
+                margin: "0 0 11px",
+                lineHeight: 1.5,
+              }}
+            >
+              Administra, así que ve <strong>todas</strong> las secciones aunque estén
+              marcadas. Quita «Administra» para que la restricción surta efecto.
+            </p>
+          )}
+
           <p style={{ fontSize: 10.5, color: "var(--kc-ink-4)", margin: "0 0 13px", lineHeight: 1.5 }}>
             {/*
               El vacío es «todas» y no «ninguna» a propósito: el Centro existe

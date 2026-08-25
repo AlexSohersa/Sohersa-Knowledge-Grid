@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import {
   registrarVistaWired,
   verCapacitacionWired,
@@ -29,7 +29,7 @@ export default async function CapacitacionPage({
 }) {
   const { id } = await params;
   const { de, ref } = await searchParams;
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("capacitaciones");
 
   const cap = await verCapacitacionWired(id);
   if (!cap) notFound();

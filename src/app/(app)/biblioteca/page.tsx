@@ -1,4 +1,4 @@
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import { listarBibliotecaWired } from "@/modules/biblioteca/infrastructure/wiring";
 import { listarGuardadosWired } from "@/modules/personal/infrastructure/wiring";
 import { haceCuanto } from "@/modules/shared/domain/formato";
@@ -22,7 +22,7 @@ export const revalidate = 0;
  * misma sincronización con Google Sheets + Drive.
  */
 export default async function BibliotecaPage() {
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("biblioteca");
 
   const [{ secciones, total, ultimaSync }, guardados] = await Promise.all([
     listarBibliotecaWired(yo.email),

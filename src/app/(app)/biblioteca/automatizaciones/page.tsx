@@ -1,3 +1,4 @@
+import { exigirSeccion } from "@/lib/grid/session";
 import { listarAutomatizacionesWired } from "@/modules/biblioteca/infrastructure/wiring";
 import { haceCuanto, tamano } from "@/modules/shared/domain/formato";
 import { BibliotecaTabs } from "@/components/biblioteca/BibliotecaTabs";
@@ -13,6 +14,7 @@ export const revalidate = 0;
  * viene del cronograma: se sube desde Digital Core y aquí se consulta.
  */
 export default async function AutomatizacionesPage() {
+  await exigirSeccion("biblioteca");
   const items = await listarAutomatizacionesWired();
 
   return (

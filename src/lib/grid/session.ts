@@ -148,3 +148,54 @@ export const areasDelPadron = cache(async function areasDelPadron(): Promise<str
 
   return filas.map((f) => f.area!).filter(Boolean);
 });
+
+/**
+ * Las secciones que esta persona puede abrir.
+ *
+ * Devuelve `null` cuando NO hay restricción —que es el caso normal—: el Centro
+ * existe para que el conocimiento circule, así que ver todo es lo esperado y
+ * restringir la excepción. Se distingue de una lista vacía a propósito, porque
+ * `[]` significaría «no ve nada» y un descuido dejaría a alguien fuera de todo.
+ */
+export const seccionesPermitidas = cache(async function seccionesPermitidas(
+  email: string,
+): Promise<string[] | null> {
+  if (!email || !gridConfigured) return null;
+
+  // Quien administra ve todo, sin más comprobaciones.
+  if (await esAdmin(email)) return null;
+
+  const fila = await gridDb()
+    .gridAdmin.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: { secciones: true },
+    })
+    .catch(() => null);
+
+  if (!fila || fila.secciones.length === 0) return null;
+  return fila.secciones;
+});
+
+/** Si esta persona puede abrir una sección concreta. */
+export async function puedeAbrir(email: string, seccion: string): Promise<boolean> {
+  const permitidas = await seccionesPermitidas(email);
+  return permitidas === null || permitidas.includes(seccion);
+}
+
+/**
+ * Corta el paso si la sección está restringida.
+ *
+ * Va en la PÁGINA y no solo en el riel: esconder un enlace no impide escribir
+ * la dirección a mano, y quien tiene restringida una sección normalmente lo
+ * está justo porque no debe verla.
+ */
+export async function exigirSeccion(seccion: string): Promise<CurrentUser> {
+  const yo = await exigirSesion();
+  if (!(await puedeAbrir(yo.email, seccion))) {
+    // Se manda a Inicio en vez de mostrar «no tienes permiso»: quien llega aquí
+    // casi siempre siguió un enlace viejo, y una pantalla de error no le sirve.
+    const { redirect } = await import("next/navigation");
+    redirect("/");
+  }
+  return yo;
+}

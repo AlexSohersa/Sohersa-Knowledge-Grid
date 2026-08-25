@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import { misRutasWired } from "@/modules/rutas/infrastructure/wiring";
 import { fechaLarga, duracion, minutosDeTexto } from "@/modules/shared/domain/formato";
 import { itemCompleto } from "@/modules/rutas/domain/ruta";
@@ -24,7 +24,7 @@ export default async function RutaPage({
 }: {
   searchParams: Promise<{ r?: string }>;
 }) {
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("ruta");
   const { r } = await searchParams;
   const rutas = await misRutasWired(yo.email);
 

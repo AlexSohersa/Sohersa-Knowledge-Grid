@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { areasDelPadron, exigirSesion } from "@/lib/grid/session";
+import { areasDelPadron, exigirSeccion } from "@/lib/grid/session";
 import { listarFaqWired } from "@/modules/faq/infrastructure/wiring";
 import { Icon } from "@/components/layout/icons";
 import { FormularioPropuesta } from "@/components/faq/FormularioPropuesta";
@@ -24,7 +24,7 @@ const PLATAFORMAS = [
  * recordar dónde estaba.
  */
 export default async function ProponerPage() {
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("faq");
 
   /*
    * Las plataformas que ya existen en el catálogo van primero, y luego las del

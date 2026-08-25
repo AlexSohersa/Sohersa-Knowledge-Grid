@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { exigirSesion } from "@/lib/grid/session";
+import { exigirSeccion } from "@/lib/grid/session";
 import { listarPreguntasWired } from "@/modules/comunidad/infrastructure/wiring";
 import { listarHerramientasWired } from "@/modules/herramientas/infrastructure/wiring";
 import { Icon } from "@/components/layout/icons";
@@ -18,7 +18,7 @@ const CATEGORIAS_BASE = ["Revit", "ACC", "Dynamo", "Navisworks", "Calidad", "Pro
  * queda corta.
  */
 export default async function PreguntarPage() {
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("comunidad");
 
   const [{ categorias }, { items: herramientas }] = await Promise.all([
     listarPreguntasWired(yo.email),

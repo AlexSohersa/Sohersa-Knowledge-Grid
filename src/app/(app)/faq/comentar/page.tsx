@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { areasDelPadron, exigirSesion } from "@/lib/grid/session";
+import { areasDelPadron, exigirSeccion } from "@/lib/grid/session";
 import { listarFaqWired } from "@/modules/faq/infrastructure/wiring";
 import { Icon } from "@/components/layout/icons";
 import { FormularioComentario } from "@/components/faq/FormularioComentario";
@@ -17,7 +17,7 @@ export default async function ComentarPage({
 }: {
   searchParams: Promise<{ faq?: string }>;
 }) {
-  const yo = await exigirSesion();
+  const yo = await exigirSeccion("faq");
   const { faq: faqId } = await searchParams;
   const areas = await areasDelPadron();
 
