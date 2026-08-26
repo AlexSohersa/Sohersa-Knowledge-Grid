@@ -119,3 +119,38 @@ export async function olvidarRefresh(
     // Nada que hacer.
   }
 }
+
+/**
+ * Guarda la foto de perfil en el padrón, en cada inicio de sesión.
+ *
+ * POR QUÉ EN CADA INICIO Y NO SOLO LA PRIMERA VEZ. Google entrega la foto como
+ * una URL con un identificador que CADUCA: cuando alguien cambia su foto —o
+ * pasa el tiempo suficiente—, la URL vieja deja de servir la imagen y empieza a
+ * devolver la silueta genérica de 1.1 KB. Guardada una sola vez, la ficha de esa
+ * persona se queda con un avatar roto para siempre, y desde fuera parece que no
+ * tiene foto puesta cuando sí la tiene.
+ *
+ * Se comprobó con dos personas del equipo: su URL en el padrón y la que guarda
+ * Evaluación 360 eran DISTINTAS y las dos devolvían la silueta, mientras que
+ * quien había entrado más recientemente sí mostraba su foto real. Refrescar en
+ * cada entrada es lo que mantiene la URL viva.
+ *
+ * No pisa una foto buena con una vacía: si Google no la manda esta vez, se
+ * conserva la que hubiera.
+ */
+export async function guardarFoto(
+  email: string | null | undefined,
+  foto: string | null | undefined,
+): Promise<void> {
+  if (!email || !foto || !dbConfigured) return;
+
+  try {
+    await db().persona.updateMany({
+      where: porCorreo(email),
+      data: { foto },
+    });
+  } catch {
+    // La foto es lo menos importante de un inicio de sesión: si falla, se entra
+    // igual y se muestran las iniciales.
+  }
+}

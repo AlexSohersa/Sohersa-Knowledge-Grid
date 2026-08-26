@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import { authConfig } from "./config";
 import { isAllowedEmail } from "./access";
-import { guardarRefresh, leerRefresh, olvidarRefresh } from "./refresh";
+import { guardarFoto, guardarRefresh, leerRefresh, olvidarRefresh } from "./refresh";
 
 /**
  * Configuración completa de Knowledge Grid.
@@ -105,6 +105,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         token.picture = photo ?? undefined;
+
+        /*
+         * La foto, al padrón. En CADA inicio de sesión, no solo el primero: la
+         * URL que entrega Google caduca, y guardada una sola vez la ficha se
+         * queda mostrando la silueta genérica aunque la persona sí tenga foto.
+         */
+        if (photo) {
+          await guardarFoto(profile?.email ?? user?.email ?? token.email, photo);
+        }
 
         // Tokens de Google: sirven para abrir los manuales de Drive CON LA
         // CUENTA DE CADA PERSONA, de modo que cada quien vea exactamente los
