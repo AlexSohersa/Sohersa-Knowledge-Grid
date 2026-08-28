@@ -102,3 +102,25 @@
   --kc-font:
     "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
+
+/* ── Los colores del Digital Core ──────────────────────────────────────
+ *
+ * Copiados de `src/styles/conexion.css` del portal para que las herramientas
+ * se vean como una sola plataforma y no como productos distintos: mismo azul
+ * de la barra, mismo verde de la marca, mismos grises del texto sobre oscuro.
+ *
+ * Llevan el prefijo `--cv-` y no se mezclan con los de esta app: así se ve de
+ * un vistazo qué viene del sistema común y qué es de aquí.
+ */
+:root {
+  --cv-navy: #0b1d33;
+  --cv-navy-2: #0e2440;
+  --cv-deep: #07172b;
+  --cv-green: #32d66b;
+  --cv-green-soft: #7ceb96;
+  --cv-teal: #39b8b4;
+  --cv-dk-2: #9db2c6;
+  --cv-dk-3: #8a99ad;
+  --cv-dk-4: #6e8199;
+  --cv-line-dk: rgba(255, 255, 255, 0.07);
+}
