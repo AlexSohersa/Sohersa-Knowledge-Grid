@@ -105,9 +105,18 @@ export const usuarioActual = cache(async function usuarioActual(): Promise<Curre
     email,
     name,
     initials: iniciales(name),
-    // La foto del padrón manda sobre la de la sesión: es la que ve todo el
-    // equipo en las demás herramientas, y así el avatar es el mismo en todas.
-    photo: perfil?.foto ?? session.user?.image ?? null,
+    /* Manda la foto de la SESIÓN, y la del padrón es el respaldo.
+       Iba al revés, buscando que el avatar fuera el mismo en todas las
+       herramientas. La intención era buena pero el efecto el contrario: las
+       URLs de Google caducan, la del padrón es la que se guardó la última vez,
+       y la de la sesión se refresca en cada entrada. Prefiriendo la guardada
+       se elegía justo la que más probabilidades tenía de estar rota, y a
+       varias personas les salía el avatar genérico.
+
+       La consistencia se consigue igual, por el otro lado: al entrar se
+       guarda en el padrón la foto fresca, así que ambas acaban siendo la
+       misma. */
+    photo: session.user?.image ?? perfil?.foto ?? null,
     role: perfil?.puesto ?? null,
     area: perfil?.area ?? null,
     isAdmin: await esAdmin(email),
