@@ -130,6 +130,7 @@ function Dato({ n, texto }: { n: number; texto: string }) {
 /** Una persona, con sus permisos desplegables. */
 function FilaColaborador({ colaborador }: { colaborador: Colaborador }) {
   const [abierto, setAbierto] = useState(false);
+  const [fotoRota, setFotoRota] = useState(false);
   const [p, setP] = useState({
     esAdmin: colaborador.permisos.esAdmin,
     revisaFaq: colaborador.permisos.revisaFaq,
@@ -184,13 +185,26 @@ function FilaColaborador({ colaborador }: { colaborador: Colaborador }) {
           cursor: "pointer",
         }}
       >
-        {colaborador.foto ? (
-          /* La foto viene del padrón, ya alojada por Google: no hay nada que
-             optimizar en el servidor. */
+        {colaborador.foto && !fotoRota ? (
+          /*
+           * `referrerPolicy="no-referrer"` NO es opcional.
+           *
+           * Sin él, el navegador manda la cabecera `Referer` con la dirección de
+           * la página, y Google rechaza servir la foto a un origen que no
+           * reconoce. El riel ya lo llevaba —por eso ahí las fotos SÍ se ven— y
+           * esta tabla no: la misma URL funcionaba en un sitio y fallaba en el
+           * otro, que es lo que hacía parecer que ciertas personas no tenían
+           * foto.
+           *
+           * Y con `onError` a las iniciales: si la URL caducó de verdad, un
+           * círculo con las iniciales se lee mejor que el icono roto.
+           */
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={colaborador.foto}
             alt=""
+            referrerPolicy="no-referrer"
+            onError={() => setFotoRota(true)}
             style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, objectFit: "cover" }}
           />
         ) : (

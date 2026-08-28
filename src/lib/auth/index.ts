@@ -75,29 +75,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.grantedScopes = account.scope ?? "";
 
         /*
-         * Foto de perfil.
+         * Foto de perfil: SE PREGUNTA A LA API, no se cree lo que trae el token.
          *
-         * El `id_token` casi nunca trae `picture` en cuentas de Workspace. La
-         * foto sí está en el endpoint OpenID `userinfo`, que se consulta con el
-         * access_token recién emitido; no hace falta ningún scope nuevo porque
-         * `profile` ya lo cubre. Sin esto el avatar cae siempre a las iniciales.
+         * `profile.picture` y `user.image` llegan con la URL que Google emitió
+         * al crear la sesión, y esas URLs CADUCAN: cuando eso pasa,
+         * `lh3.googleusercontent.com` no falla —sirve la silueta genérica de
+         * 1.1 KB—, así que guardarla parece correcto y deja a esa persona con un
+         * avatar de muñequito. Se midió: 1.1 KB frente a los 8-46 KB de una foto
+         * real.
+         *
+         * Consultar `userinfo` con el access_token recién emitido devuelve la
+         * URL viva. Antes esto se hacía SOLO si el token no traía ninguna, que
+         * es justo el caso en el que no hacía falta; ahora se hace siempre y lo
+         * del token queda como respaldo.
+         *
+         * El tiempo límite evita que un inicio de sesión se quede colgado
+         * esperando a Google por algo tan secundario como un avatar.
          */
-        let photo =
+        const delToken =
           (profile as { picture?: string } | undefined)?.picture ?? user?.image ?? null;
 
-        if (!photo && account.access_token) {
+        let photo: string | null = null;
+
+        if (account.access_token) {
           try {
-            const res = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+            const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
               headers: { Authorization: `Bearer ${account.access_token}` },
+              signal: AbortSignal.timeout(8000),
             });
             if (res.ok) {
               const info = (await res.json()) as { picture?: string };
-              if (info.picture) photo = info.picture;
+              photo = info.picture ?? null;
             }
           } catch {
-            // Si falla, se siguen mostrando las iniciales.
+            // Si Google no responde se usa la del token: una foto quizá vieja es
+            // mejor que ninguna.
           }
         }
+
+        photo ??= delToken;
 
         // Google la entrega a 96px y se ve borrosa en pantallas retina.
         if (photo?.includes("googleusercontent.com")) {
