@@ -38,10 +38,41 @@ export const GOOGLE_SCOPES = [
  *   2. Que la sesión resuelva a la persona por CORREO y no por id: las bases
  *      son distintas y los ids no coinciden. Aquí se hace así.
  *
- * En producción hace falta además un dominio común (`.sohersa.com`).
+ * En producción hace falta además un dominio común, y eso es lo que aporta
+ * `AUTH_COOKIE_DOMAIN`.
  */
 const COOKIE_PREFIX = "authjs";
 const useSecureCookies = process.env.NODE_ENV === "production";
+
+/**
+ * El dominio con el que se emiten las cookies de sesión.
+ *
+ * Sin esto la cookie vale solo para el host exacto que la puso
+ * —`knowledge-grid.sohersabim.com`— y el navegador no se la enseña a las
+ * demás herramientas: cada una vuelve a pedir la cuenta. Con
+ * `.sohersabim.com` vale para todos los subdominios y la sesión viaja.
+ *
+ * Vacío en local: ahí las cookies ya se comparten por dominio —el puerto no
+ * cuenta— y fijar uno lo rompería.
+ */
+const COOKIE_DOMAIN = process.env.AUTH_COOKIE_DOMAIN?.trim() || undefined;
+
+/**
+ * `__Host-` PROHÍBE el atributo `domain` —esa es justamente su garantía: la
+ * cookie queda atada a un host—. Con dominio compartido baja a `__Secure-`;
+ * dejarlo en `__Host-` con un `domain` puesto haría que el navegador la
+ * DESCARTE en silencio, y el login daría vueltas sin error visible.
+ */
+const csrfPrefix = useSecureCookies ? (COOKIE_DOMAIN ? "__Secure-" : "__Host-") : "";
+
+/** Opciones comunes. `domain` solo se pone si hay uno definido. */
+const cookieBase = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  path: "/",
+  secure: useSecureCookies,
+  ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
+};
 
 /**
  * Configuración base, sin acceso a base de datos, para que el middleware pueda
@@ -83,35 +114,23 @@ export const authConfig = {
   cookies: {
     sessionToken: {
       name: `${useSecureCookies ? "__Secure-" : ""}${COOKIE_PREFIX}.session-token`,
-      options: { httpOnly: true, sameSite: "lax", path: "/", secure: useSecureCookies },
+      options: { ...cookieBase },
     },
     callbackUrl: {
       name: `${useSecureCookies ? "__Secure-" : ""}${COOKIE_PREFIX}.callback-url`,
-      options: { sameSite: "lax", path: "/", secure: useSecureCookies },
+      options: { ...cookieBase, httpOnly: false },
     },
     csrfToken: {
-      name: `${useSecureCookies ? "__Host-" : ""}${COOKIE_PREFIX}.csrf-token`,
-      options: { httpOnly: true, sameSite: "lax", path: "/", secure: useSecureCookies },
+      name: `${csrfPrefix}${COOKIE_PREFIX}.csrf-token`,
+      options: { ...cookieBase },
     },
     pkceCodeVerifier: {
       name: `${useSecureCookies ? "__Secure-" : ""}${COOKIE_PREFIX}.pkce.code_verifier`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: useSecureCookies,
-        maxAge: 900,
-      },
+      options: { ...cookieBase, maxAge: 900 },
     },
     state: {
       name: `${useSecureCookies ? "__Secure-" : ""}${COOKIE_PREFIX}.state`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: useSecureCookies,
-        maxAge: 900,
-      },
+      options: { ...cookieBase, maxAge: 900 },
     },
   },
   callbacks: {

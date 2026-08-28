@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { Rail, type RailItem } from "@/components/layout/Rail";
 import { TopBar } from "@/components/layout/TopBar";
 import { seccionesPermitidas, usuarioActual } from "@/lib/grid/session";
+import { tieneAcceso, urlDelPortal } from "@/lib/grid/acceso";
+import { SinAcceso } from "@/components/SinAcceso";
 import { Campana } from "@/components/layout/Campana";
 import {
   misAvisosWired,
@@ -29,6 +31,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // se redirige, y hace que el resto del layout pueda dar por hecho que hay
   // persona.
   if (!yo) redirect("/login");
+
+  /* Quién reparte las herramientas es el portal, no cada herramienta. Se
+     comprueba aquí —antes de dibujar nada— porque esconder la tarjeta en el
+     Core no protege la dirección: se puede escribir a mano, o quedar en un
+     marcador de cuando sí se podía entrar. */
+  if (yo.email && !(await tieneAcceso(yo.email))) {
+    return <SinAcceso correo={yo.email} urlPortal={urlDelPortal()} />;
+  }
 
   const [guardados, rutas, biblioteca, capacitaciones, avisos, sinLeer, permitidas] = await Promise.all([
     contarGuardadosWired(yo.email),
