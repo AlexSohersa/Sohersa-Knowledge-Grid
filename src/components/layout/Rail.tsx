@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./icons";
 import { GridMark } from "@/components/brand/GridGlyph";
-import { cerrarSesion } from "@/app/actions";
 
 /**
  * El riel de navegación.
@@ -23,13 +22,6 @@ export type RailItem = {
   disabled?: boolean;
   /** Por qué está apagada, para el `title` del elemento. */
   tip?: string;
-};
-
-export type RailUser = {
-  name: string;
-  initials: string;
-  photo: string | null;
-  role: string | null;
 };
 
 /**
@@ -115,11 +107,9 @@ function ItemRail({ item, activa }: { item: RailItem; activa: boolean }) {
 export function Rail({
   principales,
   secundarias,
-  usuario,
 }: {
   principales: RailItem[];
   secundarias: RailItem[];
-  usuario: RailUser;
 }) {
   const pathname = usePathname();
 
@@ -198,99 +188,11 @@ export function Rail({
         ))}
       </nav>
 
-      {/* Quién soy y la salida */}
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          gap: 9,
-          padding: "9px 8px 3px",
-          borderTop: "1px solid rgba(255,255,255,.07)",
-          marginTop: 8,
-        }}
-      >
-        {usuario.photo ? (
-          // Con <img> y no next/image: Google rechaza la petición sin
-          // `referrerPolicy`, y el enlace de la foto caduca.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={usuario.photo}
-            alt=""
-            referrerPolicy="no-referrer"
-            style={{
-              width: 31,
-              height: 31,
-              borderRadius: "50%",
-              objectFit: "cover",
-              flexShrink: 0,
-              boxShadow: "0 0 0 2px rgba(50,214,107,.35)",
-            }}
-          />
-        ) : (
-          <span
-            aria-hidden="true"
-            style={{
-              width: 31,
-              height: 31,
-              borderRadius: "50%",
-              background: "var(--kc-teal)",
-              color: "#fff",
-              fontSize: 11,
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              boxShadow: "0 0 0 2px rgba(50,214,107,.35)",
-            }}
-          >
-            {usuario.initials}
-          </span>
-        )}
+      {/* Quién soy y la salida se fueron de aquí: ya están arriba, en la barra
+          superior, en el mismo sitio que en las demás herramientas de Sohersa.
+          Tenerlos en los dos lados obligaba a mirar dos veces para lo mismo, y
+          al cambiar de herramienta la salida parecía moverse de sitio. */}
 
-        <span style={{ flex: 1, minWidth: 0, lineHeight: 1.25 }}>
-          <span
-            style={{
-              display: "block",
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#fff",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {usuario.name}
-          </span>
-          <span style={{ display: "block", fontSize: 10, color: "var(--kc-dk-3)" }}>
-            {usuario.role ?? "Sohersa"}
-          </span>
-        </span>
-
-        <form action={cerrarSesion}>
-          <button
-            type="submit"
-            title="Salir"
-            className="kc-btn"
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 8,
-              border: "none",
-              background: "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--kc-dk-3)",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="logout" size={13} />
-            <span className="kc-sr">Cerrar sesión</span>
-          </button>
-        </form>
-      </div>
     </aside>
   );
 }

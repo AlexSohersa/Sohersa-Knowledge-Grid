@@ -147,12 +147,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Rail
         principales={visibles}
         secundarias={secundarias}
-        usuario={{
-          name: yo.name,
-          initials: yo.initials,
-          photo: yo.photo,
-          role: yo.role,
-        }}
       />
 
       <div className="kc-main">
