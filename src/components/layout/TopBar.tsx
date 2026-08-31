@@ -2,27 +2,36 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Icon } from "./icons";
+import { Avatar } from "@/components/hub/Avatar";
+import { signOut } from "next-auth/react";
 
 /**
- * La barra superior: la búsqueda es permanente y protagonista.
+ * La barra superior, con el aspecto del Digital Core.
  *
- * Se queda arriba en todas las pantallas porque buscar es la acción principal
- * del Centro: casi nadie navega el árbol, la gente escribe lo que necesita.
+ * Mismo alto y mismo azul que las demás herramientas, para que pasar de una a
+ * otra no se sienta como cambiar de producto. A la derecha van la ficha de
+ * quien entró y la salida, en el mismo sitio en todas.
  *
- * La búsqueda navega a `/buscar?q=…` en vez de filtrar en memoria: así el
- * resultado se puede compartir por enlace y el botón de atrás del navegador
- * funciona como se espera.
+ * La búsqueda se queda —es la acción principal del Centro: casi nadie navega
+ * el árbol, la gente escribe lo que necesita— pero más discreta, a la
+ * izquierda junto a los avisos, en vez de ocupar media barra.
+ *
+ * Navega a `/buscar?q=…` en vez de filtrar en memoria: así el resultado se
+ * puede compartir por enlace y el botón de atrás funciona como se espera.
  */
 export function TopBar({
-  guardados,
   avisos,
+  name,
+  email,
+  image,
 }: {
-  guardados: number;
   /* La campana llega ya construida desde el layout: este componente corre en
      el cliente y no puede consultar los avisos por su cuenta. */
   avisos?: React.ReactNode;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -62,10 +71,9 @@ export function TopBar({
   return (
     <header
       style={{
-        height: "var(--kc-topbar)",
+        height: 58,
         flexShrink: 0,
-        background: "#fff",
-        borderBottom: "1px solid var(--kc-line)",
+        background: "var(--cv-deep)",
         display: "flex",
         alignItems: "center",
         gap: 14,
@@ -78,7 +86,7 @@ export function TopBar({
       <form
         onSubmit={buscar}
         role="search"
-        style={{ flex: 1, maxWidth: 520, display: "flex" }}
+        style={{ flex: "0 1 320px", minWidth: 150, display: "flex" }}
       >
         <label
           style={{
@@ -86,23 +94,23 @@ export function TopBar({
             display: "flex",
             alignItems: "center",
             gap: 10,
-            background: "var(--kc-bg)",
-            border: "1px solid #E4EAF1",
+            background: "rgba(255,255,255,.06)",
+            border: "1px solid rgba(255,255,255,.13)",
             borderRadius: 11,
-            padding: "0 13px",
-            height: 38,
+            padding: "0 12px",
+            height: 34,
             cursor: "text",
           }}
         >
-          <span style={{ color: "var(--kc-ink-3)", display: "flex" }}>
-            <Icon name="search" size={15} />
+          <span style={{ color: "var(--cv-dk-3)", display: "flex" }}>
+            <Icon name="search" size={14} />
           </span>
           <span className="kc-sr">Buscar en Sohersa Knowledge Grid</span>
           <input
             ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Busca un instructivo, capacitación, software, pregunta o tema…"
+            placeholder="Buscar…"
             style={{
               flex: 1,
               minWidth: 0,
@@ -111,114 +119,68 @@ export function TopBar({
               background: "transparent",
               fontFamily: "var(--kc-font)",
               fontSize: 12.5,
-              color: "var(--kc-ink)",
+              color: "#fff",
             }}
           />
-          <span
-            aria-hidden="true"
-            style={{
-              fontSize: 9.5,
-              fontWeight: 600,
-              color: "var(--kc-ink-4)",
-              background: "#fff",
-              border: "1px solid #E4EAF1",
-              borderRadius: 5,
-              padding: "2px 6px",
-              flexShrink: 0,
-            }}
-          >
-            ⌘K
-          </span>
         </label>
       </form>
 
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 9 }}>
         {avisos}
 
-        <Link
-          href="/guardados"
-          title="Guardados"
-          className="kc-btn"
+        {/* Quién entró y por dónde se sale, en el mismo sitio que en las demás
+            herramientas. Guardados e Historial se fueron de aquí: siguen en el
+            riel, que es donde se navega, y en la barra competían con lo único
+            que hace falta tener siempre a la vista. */}
+        <span
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: 10,
-            border: "1px solid var(--kc-line)",
-            background: "#fff",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            color: "var(--kc-ink-2)",
-            position: "relative",
+            gap: 10,
+            padding: "4px 12px 4px 5px",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,.13)",
+            background: "rgba(255,255,255,.06)",
           }}
         >
-          <Icon name="star" size={15} />
-          <span className="kc-sr">Guardados</span>
-          {guardados > 0 && (
-            <span
-              style={{
-                position: "absolute",
-                top: -4,
-                right: -4,
-                minWidth: 16,
-                height: 16,
-                borderRadius: 20,
-                background: "var(--kc-green-solid)",
-                color: "#fff",
-                fontSize: 9,
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "0 4px",
-              }}
-            >
-              {guardados}
+          <Avatar name={name} email={email} image={image} size={28} online={false} />
+          <span className="hidden lg:block" style={{ lineHeight: 1.2 }}>
+            <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#fff" }}>
+              {name ?? "Sin nombre"}
             </span>
-          )}
-        </Link>
+            <span style={{ display: "block", fontSize: 10, color: "var(--cv-dk-3)" }}>
+              {email}
+            </span>
+          </span>
+        </span>
 
-        <Link
-          href="/historial"
-          title="Historial"
-          className="kc-btn"
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 10,
-            border: "1px solid var(--kc-line)",
-            background: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--kc-ink-2)",
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            signOut({ callbackUrl: "/login" });
           }}
         >
-          <Icon name="hist" size={15} />
-          <span className="kc-sr">Historial</span>
-        </Link>
-
-        <Link
-          href="/comunidad/preguntar"
-          className="kc-btn"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            border: "none",
-            background: "var(--kc-green-solid)",
-            color: "#fff",
-            fontSize: 12,
-            fontWeight: 600,
-            padding: "9px 14px",
-            borderRadius: 10,
-            whiteSpace: "nowrap",
-            boxShadow: "var(--kc-shadow-btn)",
-          }}
-        >
-          <Icon name="plus" size={13} />
-          Preguntar
-        </Link>
+          <button
+            type="submit"
+            title="Salir"
+            aria-label="Cerrar sesión"
+            className="kc-btn"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 11,
+              border: "1px solid rgba(255,255,255,.13)",
+              background: "rgba(255,255,255,.06)",
+              color: "var(--cv-dk-2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <Icon name="logout" size={15} />
+          </button>
+        </form>
       </div>
     </header>
   );

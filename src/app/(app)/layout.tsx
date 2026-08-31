@@ -173,7 +173,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             />
           }
         >
-          <TopBar guardados={guardados} avisos={<Campana avisos={avisos} sinLeer={sinLeer} />} />
+          <TopBar
+            avisos={<Campana avisos={avisos} sinLeer={sinLeer} />}
+            name={yo.name}
+            email={yo.email}
+            image={yo.photo}
+          />
         </Suspense>
         <main style={{ flex: 1, minHeight: 0 }}>{children}</main>
       </div>
