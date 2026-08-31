@@ -92,10 +92,10 @@ function ItemRail({ item, activa }: { item: RailItem; activa: boolean }) {
       style={{
         ...estilo,
         color: activa ? "#fff" : "var(--kc-dk-2)",
-        background: activa
-          ? "linear-gradient(90deg,rgba(50,214,107,.2),rgba(50,214,107,.05))"
-          : "transparent",
-        boxShadow: activa ? "inset 0 0 0 1px rgba(50,214,107,.32)" : "none",
+        // El mismo realce que en las demás herramientas: el verde de la marca
+        // al 14%, plano. El degradado con borde interior de antes era más
+        // vistoso pero distinto, y al cambiar de herramienta se notaba.
+        background: activa ? "var(--cv-green-fill)" : "transparent",
         fontWeight: activa ? 600 : 400,
       }}
     >

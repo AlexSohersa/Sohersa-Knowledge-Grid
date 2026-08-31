@@ -22,6 +22,26 @@ export const revalidate = 0;
  * lo último que se movió. Un directorio de secciones sería más ordenado y menos
  * útil: para eso ya está el riel.
  */
+/**
+ * El saludo, según la hora de MÉXICO.
+ *
+ * Se pide la zona explícitamente en vez de usar `getHours()`: esa da la hora
+ * del servidor, y en Vercel es UTC, así que a las cuatro de la tarde de aquí
+ * saludaba con «buenas noches».
+ */
+function saludo(): string {
+  const h = Number(
+    new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      hour: "numeric",
+      hour12: false,
+    }).format(new Date()),
+  );
+  if (h < 12) return "Buenos días";
+  if (h < 19) return "Buenas tardes";
+  return "Buenas noches";
+}
+
 export default async function InicioPage() {
   const yo = await exigirSesion();
 
@@ -52,8 +72,11 @@ export default async function InicioPage() {
       <section
         className="kc-dots"
         style={{
-          background: "linear-gradient(150deg,#07172B,#0C2038 62%,#07172B)",
-          padding: "34px 32px 30px",
+          // El mismo degradado y el mismo aire que el Digital Core: una
+          // franja de entrada, no una portada. Antes ocupaba 34 de alto y el
+          // saludo se comía la pantalla antes de enseñar nada útil.
+          background: "linear-gradient(165deg, var(--cv-navy) 0%, var(--cv-deep) 100%)",
+          padding: "14px 22px",
           position: "relative",
           overflow: "hidden",
         }}
@@ -64,8 +87,8 @@ export default async function InicioPage() {
             position: "absolute",
             top: -120,
             right: "6%",
-            width: 420,
-            height: 340,
+            width: 380,
+            height: 300,
             borderRadius: "50%",
             background: "radial-gradient(ellipse,rgba(50,214,107,.16),transparent 66%)",
             filter: "blur(50px)",
@@ -90,15 +113,29 @@ export default async function InicioPage() {
 
             <h1
               style={{
-                fontSize: 30,
+                // El mismo tamaño que en el Digital Core. A 30 el saludo
+                // gritaba más que las capacitaciones, que es a lo que se
+                // viene.
+                fontSize: "clamp(16px,1.5vw,19px)",
                 fontWeight: 700,
-                letterSpacing: "-.035em",
+                letterSpacing: "-.025em",
                 color: "#fff",
                 margin: 0,
                 lineHeight: 1.15,
               }}
             >
-              Hola, {nombreCorto}.
+              {saludo()},{" "}
+              <span
+                style={{
+                  background:
+                    "linear-gradient(92deg, var(--cv-green-soft), var(--cv-green) 48%, var(--cv-teal))",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
+                {nombreCorto}
+              </span>
             </h1>
             <p
               style={{

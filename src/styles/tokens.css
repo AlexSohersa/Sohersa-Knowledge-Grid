@@ -118,6 +118,10 @@
   --cv-deep: #07172b;
   --cv-green: #32d66b;
   --cv-green-soft: #7ceb96;
+  /* El fondo del elemento activo del menú: el verde de la marca al 14%.
+     No confundir con `--cv-green-soft`, que es un verde claro SÓLIDO: usarlo
+     de fondo deja un bloque verde encima del menú en vez de un realce. */
+  --cv-green-fill: rgba(55, 211, 91, 0.14);
   --cv-teal: #39b8b4;
   --cv-dk-2: #9db2c6;
   --cv-dk-3: #8a99ad;
