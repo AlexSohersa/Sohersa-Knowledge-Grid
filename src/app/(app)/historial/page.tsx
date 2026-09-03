@@ -2,7 +2,7 @@ import Link from "next/link";
 import { exigirSesion } from "@/lib/grid/session";
 import { listarHistorialWired } from "@/modules/personal/infrastructure/wiring";
 import { rutaDe } from "@/modules/personal/domain/guardado";
-import { KINDS } from "@/modules/shared/domain/conocimiento";
+import { estiloKind } from "@/modules/shared/domain/conocimiento";
 import { PageHead, EmptyState } from "@/components/ui/PageHead";
 import { BotonLimpiarHistorial } from "@/components/personal/BotonLimpiarHistorial";
 
@@ -17,7 +17,24 @@ export const revalidate = 0;
  */
 export default async function HistorialPage() {
   const yo = await exigirSesion();
-  const { grupos, total } = await listarHistorialWired(yo.email);
+
+  /*
+   * El motivo queda en el registro del servidor.
+   *
+   * Un fallo aquí llegaba como «Application error» con un `digest` y nada más,
+   * que no dice qué pasó ni a quién lo ve ni a quien lo tiene que arreglar.
+   */
+  let grupos: Awaited<ReturnType<typeof listarHistorialWired>>["grupos"] = [];
+  let total = 0;
+
+  try {
+    const r = await listarHistorialWired(yo.email);
+    grupos = r.grupos;
+    total = r.total;
+  } catch (e) {
+    console.error(`[historial] ${e instanceof Error ? e.message : String(e)}`);
+    throw e;
+  }
 
   return (
     <div style={{ padding: "24px 32px 44px" }}>
@@ -52,7 +69,7 @@ export default async function HistorialPage() {
 
               <div className="kc-panel" style={{ overflow: "hidden" }}>
                 {g.items.map((v, i) => {
-                  const estilo = KINDS[v.kind];
+                  const estilo = estiloKind(v.kind);
                   return (
                     <Link
                       key={v.id}

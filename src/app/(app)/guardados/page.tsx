@@ -2,7 +2,7 @@ import Link from "next/link";
 import { exigirSesion } from "@/lib/grid/session";
 import { listarGuardadosWired } from "@/modules/personal/infrastructure/wiring";
 import { rutaDe } from "@/modules/personal/domain/guardado";
-import { KINDS, type KindId } from "@/modules/shared/domain/conocimiento";
+import { KINDS, estiloKind, type KindId } from "@/modules/shared/domain/conocimiento";
 import { haceCuanto } from "@/modules/shared/domain/formato";
 import { PageHead, EmptyState } from "@/components/ui/PageHead";
 
@@ -59,7 +59,7 @@ export default async function GuardadosPage({
 
           <div className="kc-panel kc-rise" style={{ overflow: "hidden" }}>
             {items.map((g, i) => {
-              const estilo = KINDS[g.kind];
+              const estilo = estiloKind(g.kind);
               return (
                 <Link
                   key={g.id}

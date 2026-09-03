@@ -35,6 +35,28 @@ export const KINDS: Record<KindId, KindStyle> = {
   tpl: { label: "Plantillas", ext: "RVT", soft: "#FCE9EA", ink: "#C23840", dot: "#E95E64" },
 };
 
+/** El aspecto de un tipo desconocido. Neutro, para que no llame la atención. */
+const KIND_DESCONOCIDO: KindStyle = {
+  label: "Otro",
+  ext: "•",
+  soft: "#EDF2F7",
+  ink: "#6B7C93",
+  dot: "#A9B7C6",
+};
+
+/**
+ * El estilo de un tipo, sin poder fallar.
+ *
+ * `KINDS[kind]` directo devuelve `undefined` para cualquier valor que no esté
+ * en el catálogo, y leer `.soft` de eso TUMBA la página entera con un error de
+ * servidor —una fila vieja o escrita por otra herramienta basta—. El historial y
+ * los guardados pintan lo que haya en la base, así que tienen que aguantar un
+ * tipo que no reconozcan: mejor un icono neutro que una pantalla en blanco.
+ */
+export function estiloKind(kind: string): KindStyle {
+  return KINDS[kind as KindId] ?? KIND_DESCONOCIDO;
+}
+
 /**
  * El color de una extensión de archivo.
  *

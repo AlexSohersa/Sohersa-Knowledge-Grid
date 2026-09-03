@@ -7,7 +7,7 @@ import { listarPreguntasWired } from "@/modules/comunidad/infrastructure/wiring"
 import { listarHistorialWired } from "@/modules/personal/infrastructure/wiring";
 import { estadoPregunta } from "@/modules/comunidad/domain/pregunta";
 import { rutaDe } from "@/modules/personal/domain/guardado";
-import { KINDS } from "@/modules/shared/domain/conocimiento";
+import { estiloKind } from "@/modules/shared/domain/conocimiento";
 import { haceCuanto } from "@/modules/shared/domain/formato";
 import { GridGlyph } from "@/components/brand/GridGlyph";
 import { Pill } from "@/components/ui/Pill";
@@ -283,7 +283,7 @@ export default async function InicioPage() {
           <Bloque titulo="Lo último que abriste" href="/historial" verMas="Ver historial">
             <div className="kc-panel" style={{ overflow: "hidden" }}>
               {recientes.map((v, i) => {
-                const estilo = KINDS[v.kind];
+                const estilo = estiloKind(v.kind);
                 return (
                   <Link
                     key={v.id}
