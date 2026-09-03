@@ -34,7 +34,10 @@ export interface ResultadoOrden {
 export async function ordenarCapturas(): Promise<ResultadoOrden> {
   const drive = await getDriveClient();
 
-  const fichas = await gridDb().faqEntry.findMany({
+  // Si la base falla, se informa de cero copiadas en vez de tumbar la pantalla
+  // de Administración con un error sin mensaje.
+  const fichas = await gridDb()
+    .faqEntry.findMany({
     where: { imageDriveId: { not: null } },
     select: {
       id: true,
@@ -45,7 +48,8 @@ export async function ordenarCapturas(): Promise<ResultadoOrden> {
       imageName: true,
     },
     orderBy: { code: "asc" },
-  });
+    })
+    .catch(() => []);
 
   const out: ResultadoOrden = { copiadas: 0, yaEstaban: 0, fallaron: 0, detalles: [] };
 

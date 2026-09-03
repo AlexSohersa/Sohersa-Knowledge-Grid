@@ -38,12 +38,24 @@ export const repositorioPropuestas: RepositorioPropuestas = {
   async listar(estado): Promise<Propuesta[]> {
     if (!gridConfigured) return [];
 
-    const filas = await gridDb().faqPropuesta.findMany({
-      where: estado ? { status: estado } : undefined,
-      // Lo pendiente arriba y lo más antiguo primero: quien lleva más tiempo
-      // esperando una respuesta es a quien peor le sienta la espera.
-      orderBy: [{ status: "asc" }, { createdAt: "asc" }],
-    });
+    /*
+      * Una lectura que alimenta una pantalla NUNCA lanza.
+      *
+      * Estas listas se piden al pintar Administración; si la base tropieza, es
+      * preferible una bandeja vacía a una pantalla en blanco con un
+      * «Application error» que no dice nada.
+      */
+    const filas = await gridDb()
+      .faqPropuesta.findMany({
+        where: estado ? { status: estado } : undefined,
+        // Lo pendiente arriba y lo más antiguo primero: quien lleva más tiempo
+        // esperando una respuesta es a quien peor le sienta la espera.
+        orderBy: [{ status: "asc" }, { createdAt: "asc" }],
+      })
+      .catch((e: unknown) => {
+        console.error(`[faq] propuestas: ${e instanceof Error ? e.message : String(e)}`);
+        return [];
+      });
 
     return filas.map((f) => ({ ...f, status: f.status as Propuesta["status"] }));
   },
@@ -51,13 +63,15 @@ export const repositorioPropuestas: RepositorioPropuestas = {
   async porId(id: string): Promise<Propuesta | null> {
     if (!gridConfigured) return null;
 
-    const f = await gridDb().faqPropuesta.findUnique({ where: { id } });
+    const f = await gridDb()
+      .faqPropuesta.findUnique({ where: { id } })
+      .catch(() => null);
     return f ? { ...f, status: f.status as Propuesta["status"] } : null;
   },
 
   async pendientes(): Promise<number> {
     if (!gridConfigured) return 0;
-    return gridDb().faqPropuesta.count({ where: { status: "PENDIENTE" } });
+    return gridDb().faqPropuesta.count({ where: { status: "PENDIENTE" } }).catch(() => 0);
   },
 
   async resolver(id, resolucion): Promise<void> {
@@ -93,15 +107,20 @@ export const repositorioComentarios: RepositorioComentarios = {
   async listar(soloPendientes = false): Promise<Comentario[]> {
     if (!gridConfigured) return [];
 
-    return gridDb().faqComentario.findMany({
-      where: soloPendientes ? { resolved: false } : undefined,
-      orderBy: [{ resolved: "asc" }, { createdAt: "desc" }],
-    });
+    return gridDb()
+      .faqComentario.findMany({
+        where: soloPendientes ? { resolved: false } : undefined,
+        orderBy: [{ resolved: "asc" }, { createdAt: "desc" }],
+      })
+      .catch((e: unknown) => {
+        console.error(`[faq] comentarios: ${e instanceof Error ? e.message : String(e)}`);
+        return [];
+      });
   },
 
   async pendientes(): Promise<number> {
     if (!gridConfigured) return 0;
-    return gridDb().faqComentario.count({ where: { resolved: false } });
+    return gridDb().faqComentario.count({ where: { resolved: false } }).catch(() => 0);
   },
 
   async resolver(id: string, resueltoPor: string): Promise<void> {
@@ -145,9 +164,12 @@ export const repositorioComentarios: RepositorioComentarios = {
   async aceptadosDe(faqId: string): Promise<Comentario[]> {
     if (!gridConfigured) return [];
 
-    return gridDb().faqComentario.findMany({
-      where: { faqId, status: "ACEPTADO" },
-      orderBy: { createdAt: "desc" },
-    });
+    // Va dentro de la ficha: un fallo aquí no puede tirar la ficha entera.
+    return gridDb()
+      .faqComentario.findMany({
+        where: { faqId, status: "ACEPTADO" },
+        orderBy: { createdAt: "desc" },
+      })
+      .catch(() => []);
   },
 };
