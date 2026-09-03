@@ -30,10 +30,40 @@ export default function ErrorHistorial({
         <h1 style={{ fontSize: 17, fontWeight: 700, color: "var(--kc-ink)", margin: "0 0 8px" }}>
           No se pudo cargar el historial
         </h1>
-        <p style={{ fontSize: 13, color: "var(--kc-ink-3)", margin: "0 0 20px", lineHeight: 1.6 }}>
-          El resto del Centro sigue funcionando. Si vuelve a pasar, avisa al equipo
-          con este código: <strong>{error.digest ?? "sin código"}</strong>
+        <p style={{ fontSize: 13, color: "var(--kc-ink-3)", margin: "0 0 16px", lineHeight: 1.6 }}>
+          El resto del Centro sigue funcionando.
         </p>
+
+        {/*
+          EL MOTIVO, A LA VISTA.
+          Next oculta el mensaje real en producción —solo entrega un `digest`—
+          para no filtrar detalles del servidor al público. Aquí no hay público:
+          esto solo lo ve gente de la empresa con sesión iniciada, y un código
+          de nueve cifras no le sirve a nadie para arreglar nada. Mostrarlo
+          convierte «avisa al equipo» en «copia esto y pégalo».
+        */}
+        <pre
+          style={{
+            fontSize: 11.5,
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            color: "var(--kc-ink-2)",
+            background: "var(--kc-bg)",
+            border: "1px solid var(--kc-line)",
+            borderRadius: 9,
+            padding: "11px 13px",
+            margin: "0 0 20px",
+            textAlign: "left",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 180,
+            overflowY: "auto",
+          }}
+        >
+          {error.message || "(sin mensaje)"}
+          {error.digest ? `
+
+digest: ${error.digest}` : ""}
+        </pre>
 
         <div style={{ display: "flex", gap: 9, justifyContent: "center", flexWrap: "wrap" }}>
           <button

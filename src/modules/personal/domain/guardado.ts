@@ -43,6 +43,16 @@ export function rutaDe(kind: KindId, targetId: string): string {
       return `/faq#${targetId}`;
     case "com":
       return `/comunidad/${targetId}`;
+    default:
+      /*
+       * Un tipo que no conocemos lleva al buscador con el título.
+       *
+       * Sin este caso, el `switch` devolvía `undefined` para cualquier valor
+       * fuera del catálogo —una fila vieja, o escrita por otra herramienta— y
+       * un `<Link href={undefined}>` tumba el render entero del historial. Es
+       * mejor un enlace que al menos busca algo que una pantalla en blanco.
+       */
+      return `/buscar?q=${encodeURIComponent(targetId)}`;
   }
 }
 
