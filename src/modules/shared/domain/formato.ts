@@ -121,3 +121,51 @@ export function porcentaje(hechos: number, total: number): number {
 export function plural(n: number, singular: string, plural?: string): string {
   return `${n} ${n === 1 ? singular : (plural ?? singular + "s")}`;
 }
+
+
+/**
+ * La hora de un momento, sin poder fallar.
+ *
+ * `toLocaleTimeString("es-MX", …)` depende de que el runtime traiga los datos
+ * de esa configuración regional. En una máquina de desarrollo siempre están; en
+ * un servidor compilado con ICU reducido —que es lo que a veces despliega
+ * Vercel— la llamada LANZA, y como esto se ejecuta al renderizar cada fila,
+ * basta una para tumbar la página entera con un error de servidor.
+ *
+ * Si la configuración regional no está, se compone la hora a mano: es lo mismo
+ * que se vería, y no depende de nada.
+ */
+export function horaCorta(fecha: Date | string | number): string {
+  const d = new Date(fecha);
+  if (Number.isNaN(d.getTime())) return "";
+
+  try {
+    return d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    const h = String(d.getHours()).padStart(2, "0");
+    const m = String(d.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  }
+}
+
+/**
+ * Una fecha larga —«3 de septiembre de 2026»—, sin poder fallar.
+ *
+ * Mismo motivo que `horaCorta`: si la configuración regional no está en el
+ * servidor, se arma con los nombres de mes en español, que no cambian.
+ */
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+export function fechaLargaSegura(fecha: Date | string | number): string {
+  const d = new Date(fecha);
+  if (Number.isNaN(d.getTime())) return "";
+
+  try {
+    return d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  } catch {
+    return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+  }
+}

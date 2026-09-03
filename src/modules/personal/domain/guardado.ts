@@ -3,6 +3,7 @@
 // Lo que es de cada quien: lo que marcó para volver y lo último que abrió.
 
 import type { KindId } from "@/modules/shared/domain/conocimiento";
+import { fechaLargaSegura } from "@/modules/shared/domain/formato";
 
 /** Algo que alguien guardó para volver después. */
 export interface Guardado {
@@ -84,7 +85,7 @@ export function agruparPorDia(vistos: Visto[]): GrupoHistorial[] {
         ? "Hoy"
         : d.getTime() === ayer.getTime()
           ? "Ayer"
-          : d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+          : fechaLargaSegura(d);
 
     const lista = grupos.get(etiqueta) ?? [];
     lista.push(v);

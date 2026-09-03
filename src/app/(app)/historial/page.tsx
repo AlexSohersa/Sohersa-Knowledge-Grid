@@ -3,6 +3,7 @@ import { exigirSesion } from "@/lib/grid/session";
 import { listarHistorialWired } from "@/modules/personal/infrastructure/wiring";
 import { rutaDe } from "@/modules/personal/domain/guardado";
 import { estiloKind } from "@/modules/shared/domain/conocimiento";
+import { horaCorta } from "@/modules/shared/domain/formato";
 import { PageHead, EmptyState } from "@/components/ui/PageHead";
 import { BotonLimpiarHistorial } from "@/components/personal/BotonLimpiarHistorial";
 
@@ -119,10 +120,7 @@ export default async function HistorialPage() {
                       <span
                         style={{ fontSize: 10.5, color: "var(--kc-ink-4)", flexShrink: 0 }}
                       >
-                        {new Date(v.viewedAt).toLocaleTimeString("es-MX", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {horaCorta(v.viewedAt)}
                       </span>
                     </Link>
                   );
