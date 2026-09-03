@@ -65,20 +65,37 @@ export const repositorioNotificaciones = {
   async listar(email: string): Promise<Notificacion[]> {
     if (!gridConfigured) return [];
 
-    const filas = await gridDb().notificacion.findMany({
-      where: { email: email.toLowerCase() },
-      orderBy: { createdAt: "desc" },
-      take: TOPE,
-      select: {
-        id: true,
-        kind: true,
-        title: true,
-        body: true,
-        href: true,
-        readAt: true,
-        createdAt: true,
-      },
-    });
+    /*
+     * UN FALLO AQUÍ NO PUEDE TUMBAR LA APLICACIÓN.
+     *
+     * La campana se pinta en el armazón, así que estas dos consultas corren en
+     * CADA página. Sin `catch`, cualquier problema con la base —la conexión se
+     * cae un instante, el servidor sin conexión saliente— sube hasta el layout
+     * y tira la pantalla entera con un «Application error» que no dice nada.
+     * Se comprobó: era esto lo que rompía el historial.
+     *
+     * Sin avisos se puede trabajar; sin pantalla no. Se devuelve vacío y se
+     * registra el motivo.
+     */
+    const filas = await gridDb()
+      .notificacion.findMany({
+        where: { email: email.toLowerCase() },
+        orderBy: { createdAt: "desc" },
+        take: TOPE,
+        select: {
+          id: true,
+          kind: true,
+          title: true,
+          body: true,
+          href: true,
+          readAt: true,
+          createdAt: true,
+        },
+      })
+      .catch((e: unknown) => {
+        console.error(`[avisos] no se pudieron leer: ${e instanceof Error ? e.message : String(e)}`);
+        return [];
+      });
 
     return filas.map((f) => ({ ...f, kind: f.kind as ClaseAviso }));
   },
@@ -87,9 +104,12 @@ export const repositorioNotificaciones = {
   async sinLeer(email: string): Promise<number> {
     if (!gridConfigured) return 0;
 
-    return gridDb().notificacion.count({
-      where: { email: email.toLowerCase(), readAt: null },
-    });
+    // Mismo motivo que en `listar`: el contador no vale una pantalla en blanco.
+    return gridDb()
+      .notificacion.count({
+        where: { email: email.toLowerCase(), readAt: null },
+      })
+      .catch(() => 0);
   },
 
   /** Marca como leídos todos los de una persona. */
