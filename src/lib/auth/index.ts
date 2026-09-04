@@ -1,4 +1,7 @@
 import NextAuth from "next-auth";
+import type { Account, Profile, User } from "next-auth";
+import type { AdapterUser } from "next-auth/adapters";
+import type { JWT } from "next-auth/jwt";
 import { authConfig } from "./config";
 import { isAllowedEmail } from "./access";
 import { guardarFoto, guardarRefresh, leerRefresh, olvidarRefresh } from "./refresh";
@@ -103,10 +106,67 @@ async signIn({ account, user, profile }) {
       return true;
     },
 
-    async jwt({ token, account, profile, user }) {
-      if (account) {
-        // Se guarda lo concedido para poder avisar si falta algún permiso.
-        token.grantedScopes = account.scope ?? "";
+    /*
+     * EL CALLBACK, PROTEGIDO POR FUERA.
+     *
+     * `jwt` corre en CADA petición y ANTES de que la página toque la base. Si
+     * algo dentro lanza —Google que tarda, una escritura al padrón que falla—,
+     * la petición muere con un 500 y la pantalla no llega a ejecutarse nunca.
+     * Es exactamente lo que mostró el registro de producción: 500, tres
+     * segundos de ejecución y ninguna petición saliente a la base.
+     *
+     * Con la sesión ya emitida, seguir con el token que hay es siempre mejor
+     * que no servir nada. El envoltorio va aquí, alrededor de la función, para
+     * no tocar su interior.
+     */
+    async jwt(params) {
+      try {
+        return await jwtInterno(params);
+      } catch (e) {
+        console.error(
+          `[auth] el callback jwt falló: ${e instanceof Error ? e.message : String(e)}`,
+        );
+        return params.token;
+      }
+    },
+
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.grantedScopes = (token.grantedScopes as string) ?? "";
+        session.user.image = (token.picture as string | undefined) ?? session.user.image;
+
+        // Los tokens de Google solo se usan en el servidor, para leer Drive con
+        // la cuenta de cada quien. Nunca se pintan en la interfaz.
+        session.user.googleAccess = token.googleAccess as string | undefined;
+        session.user.googleRefresh = token.googleRefresh as string | undefined;
+        session.user.googleExpires = token.googleExpires as number | undefined;
+      }
+      return session;
+    },
+  },
+});
+
+/**
+ * Lo que hace `jwt` de verdad.
+ *
+ * Vive fuera del objeto de configuración para poder envolverlo en un
+ * `try/catch` sin reindentar su cuerpo entero.
+ */
+async function jwtInterno({
+  token,
+  account,
+  profile,
+  user,
+}: {
+  token: JWT;
+  account?: Account | null;
+  profile?: Profile;
+  user?: User | AdapterUser;
+}) {
+  {
+    if (account) {
+      // Se guarda lo concedido para poder avisar si falta algún permiso.
+      token.grantedScopes = account.scope ?? "";
 
         /*
          * Foto de perfil: SE PREGUNTA A LA API, no se cree lo que trae el token.
@@ -225,6 +285,21 @@ async signIn({ account, user, profile }) {
           const r = await fetch("https://oauth2.googleapis.com/token", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            /*
+             * CON TIEMPO LÍMITE.
+             *
+             * Sin él, si Google tarda en contestar la función se queda
+             * esperando hasta agotar su tiempo y la petición muere con un 500
+             * SIN llegar a consultar la base —que es justo lo que mostró el
+             * registro de producción: «sin peticiones salientes», 3 s de
+             * ejecución y 500—.
+             *
+             * Esto corre en CADA página, porque `auth()` renueva el token
+             * cuando toca, así que un momento malo de Google tumbaba cualquier
+             * pantalla. Cinco segundos: si no contestó, se sigue con el token
+             * viejo, que aún sirve hasta caducar de verdad.
+             */
+            signal: AbortSignal.timeout(5000),
             body: new URLSearchParams({
               client_id: process.env.AUTH_GOOGLE_ID ?? "",
               client_secret: process.env.AUTH_GOOGLE_SECRET ?? "",
@@ -269,21 +344,6 @@ async signIn({ account, user, profile }) {
         }
       }
 
-      return token;
-    },
-
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.grantedScopes = (token.grantedScopes as string) ?? "";
-        session.user.image = (token.picture as string | undefined) ?? session.user.image;
-
-        // Los tokens de Google solo se usan en el servidor, para leer Drive con
-        // la cuenta de cada quien. Nunca se pintan en la interfaz.
-        session.user.googleAccess = token.googleAccess as string | undefined;
-        session.user.googleRefresh = token.googleRefresh as string | undefined;
-        session.user.googleExpires = token.googleExpires as number | undefined;
-      }
-      return session;
-    },
-  },
-});
+    return token;
+  }
+}
