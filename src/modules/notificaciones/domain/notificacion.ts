@@ -83,5 +83,16 @@ export function haceCuanto(fecha: Date, ahora: Date = new Date()): string {
   if (seg < 172800) return "ayer";
   if (seg < 604800) return `hace ${Math.floor(seg / 86400)} días`;
 
-  return fecha.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+  /*
+   * Con zona fija, como todo lo que se muestra.
+   *
+   * La campana se pinta en CADA página, así que un desajuste aquí entre lo que
+   * escribe el servidor y lo que calcula el navegador rompería la hidratación
+   * en toda la aplicación, no solo en una pantalla.
+   */
+  return fecha.toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "long",
+    timeZone: "America/Mexico_City",
+  });
 }

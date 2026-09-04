@@ -140,7 +140,25 @@ export function horaCorta(fecha: Date | string | number): string {
   if (Number.isNaN(d.getTime())) return "";
 
   try {
-    return d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("es-MX", {
+      hour: "2-digit",
+      minute: "2-digit",
+      /*
+       * LA ZONA HORARIA VA FIJADA, Y ESO ES LO IMPORTANTE.
+       *
+       * Sin ella, cada lado usa la suya: el servidor de Vercel corre en UTC y
+       * el navegador en la de cada persona. La misma hora salía «02:35 p.m.» en
+       * el HTML del servidor y «08:35 a.m.» al montarlo en el navegador —seis
+       * horas de diferencia—, React detectaba que el texto no coincide, abortaba
+       * la hidratación y tiraba la página entera.
+       *
+       * Encaja con todo lo que no cuadraba: el registro decía 200 —el servidor
+       * SÍ respondía—, el `digest` no cambiaba nunca porque no era un error de
+       * código, y en local no pasaba porque la máquina y el servidor comparten
+       * zona. Con la zona fija, los dos lados escriben lo mismo.
+       */
+      timeZone: ZONA,
+    });
   } catch {
     const h = String(d.getHours()).padStart(2, "0");
     const m = String(d.getMinutes()).padStart(2, "0");
@@ -154,6 +172,15 @@ export function horaCorta(fecha: Date | string | number): string {
  * Mismo motivo que `horaCorta`: si la configuración regional no está en el
  * servidor, se arma con los nombres de mes en español, que no cambian.
  */
+/**
+ * La zona de la empresa.
+ *
+ * Todo lo que se muestra se lee en hora de México, no en la del servidor ni en
+ * la de quien mire desde otro huso: una marca de tiempo que cambia según quién
+ * la lea deja de servir para comparar.
+ */
+const ZONA = "America/Mexico_City";
+
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
   "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
@@ -164,7 +191,14 @@ export function fechaLargaSegura(fecha: Date | string | number): string {
   if (Number.isNaN(d.getTime())) return "";
 
   try {
-    return d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+    // Misma razón que en `horaCorta`: sin zona fija, un día de diferencia entre
+    // servidor y navegador rompe la hidratación igual.
+    return d.toLocaleDateString("es-MX", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: ZONA,
+    });
   } catch {
     return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
   }
