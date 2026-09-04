@@ -39,13 +39,41 @@ export default async function HistorialPage() {
 
   return (
     <div style={{ padding: "24px 32px 44px" }}>
-      <PageHead
-        icon="hist"
-        title="Historial"
-        description="Lo último que abriste, por día"
-        accent="var(--kc-teal)"
-        action={total > 0 ? <BotonLimpiarHistorial /> : null}
-      />
+      {/*
+        EL BOTÓN VA AQUÍ, NO EN UNA PROP DE `PageHead`.
+
+        Pasar un componente `"use client"` como prop a uno de servidor es lo que
+        rompía esta página en producción, y solo en producción:
+
+          Could not find the module "…/BotonLimpiarHistorial.tsx#…"
+          in the React Client Manifest
+
+        El empaquetador no registraba el componente en el manifiesto de cliente
+        —al empaquetar no ve que ese elemento vaya a acabar renderizándose—, así
+        que al serializar la respuesta no lo encontraba y la petición moría con
+        un 500. En desarrollo no pasa porque no hay empaquetado previo: por eso
+        en local funcionaba siempre.
+
+        Las otras cinco pantallas usan `action` sin problema porque le pasan un
+        `<Link>`, que es de servidor. Esta era la única con un componente de
+        cliente ahí.
+      */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <PageHead
+            icon="hist"
+            title="Historial"
+            description="Lo último que abriste, por día"
+            accent="var(--kc-teal)"
+          />
+        </div>
+
+        {total > 0 && (
+          <div style={{ flexShrink: 0, paddingTop: 6 }}>
+            <BotonLimpiarHistorial />
+          </div>
+        )}
+      </div>
 
       {total === 0 ? (
         <EmptyState title="Tu historial está vacío">
