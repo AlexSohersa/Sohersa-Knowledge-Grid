@@ -18,5 +18,18 @@ export const config = {
    * imagen y cada fuente pasaría por la comprobación de sesión, que es trabajo
    * inútil y hace más lenta la carga.
    */
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)"],
+  matcher: [
+    /* Lo que el middleware NO tiene que mirar.
+     *
+     * Corre antes que nada, en cada petición que pasa el filtro, y es un
+     * tercio del tiempo de cómputo de la cuenta. Cada cosa que se excluye
+     * aquí es una ejecución que no ocurre.
+     *
+     * Se añaden a la lista los ficheros estáticos que faltaban —tipografías,
+     * iconos, manifiestos, los .txt y .xml que piden los buscadores— y las
+     * peticiones internas de Next para prefetch: ninguna necesita saber si
+     * hay sesión.
+     */
+    "/((?!api/auth|_next/static|_next/image|_next/data|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|otf|css|js|map|txt|xml|json)$).*)",
+  ],
 };
