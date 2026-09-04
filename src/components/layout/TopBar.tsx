@@ -129,9 +129,9 @@ export function TopBar({
         {avisos}
 
         {/* Quién entró y por dónde se sale, en el mismo sitio que en las demás
-            herramientas. Guardados e Historial se fueron de aquí: siguen en el
-            riel, que es donde se navega, y en la barra competían con lo único
-            que hace falta tener siempre a la vista. */}
+            herramientas. Guardados se fue de aquí: sigue en el riel, que es
+            donde se navega, y en la barra competía con lo único que hace
+            falta tener siempre a la vista. */}
         <span
           style={{
             display: "flex",

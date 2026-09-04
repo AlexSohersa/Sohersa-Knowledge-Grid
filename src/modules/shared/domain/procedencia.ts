@@ -23,7 +23,7 @@
  */
 
 /** Los orígenes desde los que se llega a una ficha. */
-export type Procedencia = "ruta" | "biblioteca" | "capacitaciones" | "herramientas" | "faq" | "buscar" | "guardados" | "historial";
+export type Procedencia = "ruta" | "biblioteca" | "capacitaciones" | "herramientas" | "faq" | "buscar" | "guardados";
 
 /** El regreso: a dónde volver y cómo llamar a ese sitio en el botón. */
 export type Regreso = { href: string; etiqueta: string };
@@ -42,7 +42,6 @@ const ORIGENES: Record<Procedencia, Regreso> = {
   faq: { href: "/faq", etiqueta: "Preguntas frecuentes" },
   buscar: { href: "/buscar", etiqueta: "Resultados de búsqueda" },
   guardados: { href: "/guardados", etiqueta: "Guardados" },
-  historial: { href: "/historial", etiqueta: "Historial" },
 };
 
 /** ¿Es `valor` uno de los orígenes que conocemos? */

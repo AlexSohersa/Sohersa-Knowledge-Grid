@@ -133,7 +133,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       icon: "star",
       badge: guardados > 0 ? String(guardados) : null,
     },
-    { href: "/historial", label: "Historial", icon: "hist" },
     { href: "/aprendizaje", label: "Mi aprendizaje", icon: "me" },
     // Administración solo aparece para quien administra: aquí sí se esconde,
     // porque no es una sección a la que alguien pueda aspirar por su cuenta.

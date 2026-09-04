@@ -280,7 +280,7 @@ export default async function InicioPage() {
 
         {/* ── Lo último que abriste ─────────────────────────────────────── */}
         {recientes.length > 0 && (
-          <Bloque titulo="Lo último que abriste" href="/historial" verMas="Ver historial">
+          <Bloque titulo="Lo último que abriste">
             <div className="kc-panel" style={{ overflow: "hidden" }}>
               {recientes.map((v, i) => {
                 const estilo = estiloKind(v.kind);
@@ -486,8 +486,15 @@ function Bloque({
   children,
 }: {
   titulo: string;
-  href: string;
-  verMas: string;
+  /*
+   * Opcionales: hay bloques que se bastan solos.
+   *
+   * «Lo último que abriste» era el caso: llevaba a una pantalla de historial
+   * que ya no existe. Lo que muestra aquí es todo lo que hay, así que el
+   * encabezado se queda sin el «ver más» en vez de apuntar a ningún sitio.
+   */
+  href?: string;
+  verMas?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -514,34 +521,36 @@ function Bloque({
         >
           {titulo}
         </h2>
-        <Link
-          href={href}
-          style={{
-            fontSize: 11.5,
-            fontWeight: 600,
-            color: "var(--kc-ink-3)",
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
-          {verMas}
-          {/* Chevron a la derecha: "ver más" lleva hacia adelante. El icono
-              `back` apuntaba al revés y contradecía la acción. */}
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.6"
-            strokeLinecap="round"
-            aria-hidden="true"
+        {href && verMas && (
+          <Link
+            href={href}
+            style={{
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: "var(--kc-ink-3)",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}
           >
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </Link>
+            {verMas}
+            {/* Chevron a la derecha: "ver más" lleva hacia adelante. El icono
+                `back` apuntaba al revés y contradecía la acción. */}
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </Link>
+        )}
       </div>
       {children}
     </section>
