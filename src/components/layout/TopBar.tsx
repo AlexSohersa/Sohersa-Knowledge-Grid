@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "./icons";
 import { Avatar } from "@/components/hub/Avatar";
+import { VolverAlCore } from "./VolverAlCore";
 import { signOut } from "next-auth/react";
 
 /**
@@ -126,6 +127,7 @@ export function TopBar({
       </form>
 
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 9 }}>
+        <VolverAlCore />
         {avisos}
 
         {/* Quién entró y por dónde se sale, en el mismo sitio que en las demás
