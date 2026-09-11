@@ -22,6 +22,8 @@ export interface Material {
   driveId: string | null;
   sizeText: string | null;
   downloadable: boolean;
+  /** En qué subcarpeta quedó: «01 Video», «02 Materiales», «03 Notas». */
+  subcarpeta: string | null;
 }
 
 /** Un tema de la capacitación: un video, una presentación, un ejercicio. */
@@ -34,12 +36,18 @@ export interface Tema {
   kind: string;
   duration: string | null;
   videoUrl: string | null;
+  /** El id de Drive suelto, sin el enlace alrededor. */
+  videoDriveId: string | null;
+  /** `true` cuando el video ya vive en la carpeta del Centro. */
+  videoPropio: boolean;
   materials: Material[];
 }
 
 /** Una capacitación completa. */
 export interface Capacitacion {
   id: string;
+  /// «CAP-001». Da nombre a su carpeta en Drive. Nulo mientras no se asigne.
+  code: string | null;
   title: string;
   summary: string | null;
   objectives: string[];
@@ -54,6 +62,16 @@ export interface Capacitacion {
   status: string;
   period: string | null;
   views: number;
+
+  /// Su carpeta dentro de «Capacitaciones Centro de Conocimiento».
+  driveFolderId: string | null;
+  /// El documento de notas del que se importó, si vino de ahí.
+  notasDocId: string | null;
+  /// Cuándo se impartió, de verdad —`period` es texto libre—.
+  impartidaEn: Date | null;
+  /// Cuánta gente asistió.
+  asistentes: number;
+
   temas: Tema[];
 }
 

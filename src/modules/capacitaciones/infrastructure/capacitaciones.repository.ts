@@ -32,6 +32,7 @@ const INCLUIR_TODO = {
 /* El tipo que devuelve Prisma con ese include, sin escribirlo a mano. */
 type FilaConTodo = {
   id: string;
+  code: string | null;
   title: string;
   summary: string | null;
   objectives: string[];
@@ -46,6 +47,10 @@ type FilaConTodo = {
   status: string;
   period: string | null;
   views: number;
+  driveFolderId: string | null;
+  notasDocId: string | null;
+  impartidaEn: Date | null;
+  asistentes: number;
   topics: Array<{
     id: string;
     code: string;
@@ -54,6 +59,8 @@ type FilaConTodo = {
     kind: string;
     duration: string | null;
     videoUrl: string | null;
+    videoDriveId: string | null;
+    videoPropio: boolean;
     materials: Array<{
       id: string;
       title: string;
@@ -62,6 +69,7 @@ type FilaConTodo = {
       driveId: string | null;
       sizeText: string | null;
       downloadable: boolean;
+      subcarpeta: string | null;
     }>;
   }>;
 };
@@ -76,6 +84,8 @@ function aCapacitacion(fila: FilaConTodo): Capacitacion {
       kind: t.kind,
       duration: t.duration,
       videoUrl: t.videoUrl,
+      videoDriveId: t.videoDriveId,
+      videoPropio: t.videoPropio,
       materials: t.materials.map((m) => ({
         id: m.id,
         title: m.title,
@@ -84,12 +94,14 @@ function aCapacitacion(fila: FilaConTodo): Capacitacion {
         driveId: m.driveId,
         sizeText: m.sizeText,
         downloadable: m.downloadable,
+        subcarpeta: m.subcarpeta,
       })),
     };
   });
 
   return {
     id: fila.id,
+    code: fila.code,
     title: fila.title,
     summary: fila.summary,
     objectives: fila.objectives,
@@ -104,6 +116,10 @@ function aCapacitacion(fila: FilaConTodo): Capacitacion {
     status: fila.status,
     period: fila.period,
     views: fila.views,
+    driveFolderId: fila.driveFolderId,
+    notasDocId: fila.notasDocId,
+    impartidaEn: fila.impartidaEn,
+    asistentes: fila.asistentes,
     temas,
   };
 }

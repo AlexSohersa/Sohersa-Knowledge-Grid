@@ -18,6 +18,7 @@ export interface FiltrosCapacitaciones {
 
 /** Lo que se necesita para crear o editar una capacitación. */
 export interface DatosCapacitacion {
+  code?: string | null;
   title: string;
   summary?: string | null;
   objectives?: string[];
@@ -31,6 +32,10 @@ export interface DatosCapacitacion {
   accent?: string;
   status?: string;
   period?: string | null;
+  driveFolderId?: string | null;
+  notasDocId?: string | null;
+  impartidaEn?: Date | null;
+  asistentes?: number;
 }
 
 /** Lo que se necesita para crear o editar un tema. */
@@ -41,6 +46,8 @@ export interface DatosTema {
   kind?: string;
   duration?: string | null;
   videoUrl?: string | null;
+  videoDriveId?: string | null;
+  videoPropio?: boolean;
   position?: number;
 }
 
@@ -52,6 +59,7 @@ export interface DatosMaterial {
   driveId?: string | null;
   sizeText?: string | null;
   downloadable?: boolean;
+  subcarpeta?: string | null;
   position?: number;
 }
 

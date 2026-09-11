@@ -14,11 +14,26 @@ import {
   archivarCapacitacionWired,
   crearCapacitacionWired,
   editarCapacitacionWired,
+  editarTemaWired,
   eliminarCapacitacionWired,
   eliminarMaterialWired,
   eliminarTemaWired,
   publicarCapacitacionWired,
+  verCapacitacionWired,
 } from "@/modules/capacitaciones/infrastructure/wiring";
+import {
+  enlaceCarpeta,
+  importarCapacitacion,
+  NotasError,
+  proponerDesdeNotas,
+  type AjustesImportacion,
+  type Propuesta,
+} from "@/modules/capacitaciones/infrastructure/importar";
+import {
+  copiarArchivo,
+  idDesdeEnlace,
+  subirArchivo,
+} from "@/modules/capacitaciones/infrastructure/carpeta-drive";
 import {
   agregarEtapaWired,
   agregarItemWired,
@@ -795,4 +810,214 @@ export async function guardarPermisosDe(
   } catch {
     return { ok: false, error: "No se pudieron guardar los permisos." };
   }
+}
+
+/* ── Importar capacitaciones desde notas de Gemini ───────────────────────── */
+
+/**
+ * Lee unas notas y devuelve lo que se importaría, SIN guardar nada.
+ *
+ * Es la mitad de «previsualizar antes de aceptar» que ya usan las propuestas
+ * del FAQ, y por el mismo motivo: lo que sale de un documento generado
+ * automáticamente merece una revisión humana antes de quedar publicado. El
+ * instructor, por ejemplo, se deduce de quién conduce la sesión en las notas
+ * —una deducción, no un dato— y conviene confirmarla.
+ *
+ * Corre con la cuenta de quien lo pide: si esa persona no puede abrir el
+ * documento, esto falla igual que le fallaría a ella en el navegador.
+ */
+export async function previsualizarNotas(
+  enlace: string,
+): Promise<{ ok: true; propuesta: Propuesta } | { ok: false; error: string }> {
+  await exigirAdmin();
+
+  if (!enlace.trim()) return { ok: false, error: "Pega el enlace del documento de notas." };
+
+  try {
+    const propuesta = await proponerDesdeNotas(enlace);
+
+    if (propuesta.temas.length === 0) {
+      return {
+        ok: false,
+        error:
+          "El documento se abrió pero no tiene desglose de temas. ¿Seguro que son notas de Gemini de una capacitación?",
+      };
+    }
+
+    return { ok: true, propuesta };
+  } catch (e) {
+    if (e instanceof NotasError) return { ok: false, error: e.message };
+    const motivo = e instanceof Error ? e.message : String(e);
+    console.error(`[importar] fallo al leer las notas: ${motivo}`);
+    return { ok: false, error: "No se pudieron leer las notas. Revisa el enlace." };
+  }
+}
+
+/**
+ * Guarda la capacitación y deja su material en la carpeta del Centro.
+ *
+ * Devuelve los avisos de lo que no salió —un video que no se dejó copiar, por
+ * ejemplo— en vez de tragárselos: quien importa tiene que enterarse de que el
+ * video sigue viviendo en el Drive de otra persona.
+ */
+export async function importarNotas(
+  propuesta: Propuesta,
+  ajustes: AjustesImportacion,
+): Promise<
+  | { ok: true; id: string; codigo: string; carpeta: string; temas: number; avisos: string[] }
+  | { ok: false; error: string }
+> {
+  const yo = await exigirAdmin();
+
+  if (!ajustes.titulo.trim()) return { ok: false, error: "La capacitación necesita un título." };
+
+  try {
+    const r = await importarCapacitacion(propuesta, ajustes, yo.email);
+
+    revalidatePath("/admin/capacitaciones");
+    revalidatePath("/capacitaciones");
+    revalidatePath("/", "layout");
+
+    return {
+      ok: true,
+      id: r.capacitacionId,
+      codigo: r.codigo,
+      carpeta: enlaceCarpeta(r.carpetaId),
+      temas: r.temas,
+      avisos: r.avisos,
+    };
+  } catch (e) {
+    if (e instanceof NotasError) return { ok: false, error: e.message };
+    const motivo = e instanceof Error ? e.message : String(e);
+    console.error(`[importar] fallo al guardar: ${motivo}`);
+    return { ok: false, error: `No se pudo importar: ${motivo.slice(0, 200)}` };
+  }
+}
+
+/**
+ * Sube un archivo a la carpeta de una capacitación y lo cuelga de un tema.
+ *
+ * El archivo va a la subcarpeta que le toca según lo que sea: un video a
+ * «01 Video», lo demás a «02 Materiales». Se renombra con el código delante
+ * para que en Drive se sepa de qué capacitación es sin abrir la carpeta.
+ */
+export async function subirMaterial(
+  temaId: string,
+  capId: string,
+  form: FormData,
+): Promise<Resultado> {
+  await exigirAdmin();
+
+  const archivo = form.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { ok: false, error: "No llegó ningún archivo." };
+  }
+
+  const cap = await verCapacitacionWired(capId);
+  if (!cap) return { ok: false, error: "Esa capacitación ya no existe." };
+
+  const esVideo = archivo.type.startsWith("video/");
+  const titulo = (form.get("titulo") as string | null)?.trim() || archivo.name;
+
+  try {
+    const subido = await subirArchivo(
+      archivo,
+      cap.code ?? null,
+      cap.title,
+      esVideo ? "video" : "materiales",
+      `${cap.code ? cap.code + " " : ""}${titulo}`,
+    );
+
+    if (esVideo) {
+      await editarTemaWired(temaId, {
+        videoUrl: `https://drive.google.com/file/d/${subido.driveId}/view`,
+        videoDriveId: subido.driveId,
+        videoPropio: true,
+      });
+    } else {
+      await agregarMaterialWired(temaId, {
+        title: titulo,
+        kind: tipoDeArchivo(archivo.name, archivo.type),
+        driveId: subido.driveId,
+        url: `https://drive.google.com/file/d/${subido.driveId}/view`,
+        sizeText: tamanoLegible(archivo.size),
+        subcarpeta: "02 Materiales",
+      });
+    }
+
+    revalidatePath(`/admin/capacitaciones/${capId}`);
+    revalidatePath(`/capacitaciones/${capId}`);
+    return { ok: true };
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : String(e);
+    console.error(`[material] no se pudo subir: ${motivo}`);
+    return { ok: false, error: `No se pudo subir a Drive: ${motivo.slice(0, 160)}` };
+  }
+}
+
+/**
+ * Trae a la carpeta del Centro un archivo que ya vive en Drive.
+ *
+ * La otra mitad de subir: cuando el material ya está en Drive —el Drive de
+ * quien lo grabó, normalmente—, se COPIA aquí en vez de pedir que lo bajen y
+ * lo vuelvan a subir. Copiar solo exige poder verlo, así que no hace falta
+ * cambiarle los permisos a nadie.
+ */
+export async function copiarMaterialDeDrive(
+  temaId: string,
+  capId: string,
+  enlace: string,
+  titulo: string,
+): Promise<Resultado> {
+  await exigirAdmin();
+
+  const origen = idDesdeEnlace(enlace);
+  if (!origen) return { ok: false, error: "Ese enlace no parece de Google Drive." };
+
+  const cap = await verCapacitacionWired(capId);
+  if (!cap) return { ok: false, error: "Esa capacitación ya no existe." };
+
+  try {
+    const copia = await copiarArchivo(
+      origen,
+      cap.code ?? null,
+      cap.title,
+      "materiales",
+      `${cap.code ? cap.code + " " : ""}${titulo.trim() || "Material"}`,
+    );
+
+    await agregarMaterialWired(temaId, {
+      title: titulo.trim() || copia.nombre,
+      kind: tipoDeArchivo(copia.nombre, ""),
+      driveId: copia.driveId,
+      url: `https://drive.google.com/file/d/${copia.driveId}/view`,
+      subcarpeta: "02 Materiales",
+    });
+
+    revalidatePath(`/admin/capacitaciones/${capId}`);
+    revalidatePath(`/capacitaciones/${capId}`);
+    return { ok: true };
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: `No se pudo copiar: ${motivo.slice(0, 160)}` };
+  }
+}
+
+/** De qué tipo es, para que el visor sepa cómo abrirlo. */
+function tipoDeArchivo(nombre: string, mime: string): string {
+  const ext = nombre.toLowerCase().split(".").pop() ?? "";
+  if (ext === "pdf" || mime === "application/pdf") return "PDF";
+  if (["ppt", "pptx"].includes(ext)) return "PPT";
+  if (["xls", "xlsx", "csv"].includes(ext)) return "XLS";
+  if (["doc", "docx"].includes(ext)) return "DOC";
+  if (ext === "rvt") return "RVT";
+  if (["zip", "rar", "7z"].includes(ext)) return "ZIP";
+  return "LINK";
+}
+
+/** «2.4 MB», para enseñarlo junto al material. */
+function tamanoLegible(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

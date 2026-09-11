@@ -4,6 +4,8 @@ import { Icon } from "@/components/layout/icons";
 import { Pill } from "@/components/ui/Pill";
 import { PageHead } from "@/components/ui/PageHead";
 import { FormularioCapacitacion } from "@/components/admin/FormularioCapacitacion";
+import { ImportarCapacitacion } from "@/components/admin/ImportarCapacitacion";
+import { ENLACE_CARPETA_MADRE } from "@/modules/capacitaciones/infrastructure/importar";
 
 export const revalidate = 0;
 
@@ -129,8 +131,38 @@ export default async function AdminCapacitacionesPage() {
           )}
         </div>
 
-        {/* ── Crear ───────────────────────────────────────────────────── */}
-        <FormularioCapacitacion />
+        {/* ── Importar y crear ────────────────────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/*
+            Importar va ANTES que crear a mano, y es deliberado: casi todas las
+            capacitaciones nacen de una sesión grabada con sus notas, así que
+            ese es el camino normal. Crear desde cero es la excepción.
+          */}
+          <ImportarCapacitacion />
+
+          <FormularioCapacitacion />
+
+          <a
+            href={ENLACE_CARPETA_MADRE}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              fontSize: 11,
+              color: "var(--kc-ink-3)",
+              textDecoration: "none",
+              padding: "9px 12px",
+              border: "1px solid var(--kc-line)",
+              borderRadius: 9,
+              background: "#fff",
+            }}
+          >
+            <Icon name="lib" size={12} />
+            Abrir la carpeta de capacitaciones en Drive
+          </a>
+        </div>
       </div>
     </div>
   );

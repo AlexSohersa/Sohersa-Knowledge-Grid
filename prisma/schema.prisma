@@ -31,8 +31,8 @@
 // =============================================================================
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client-grid"
+  provider      = "prisma-client-js"
+  output        = "../node_modules/.prisma/client-grid"
   /// Vercel corre Linux; sin esto Prisma solo trae el motor de Windows y en
   /// producción toda consulta falla en silencio.
   // Solo los dos que hacen falta: el del equipo de quien desarrolla
@@ -49,7 +49,7 @@ datasource db {
   ///   core   — personas, proyectos y clientes. Del núcleo; aquí solo se lee.
   ///   grid   — las tablas de esta herramienta.
   ///   public — la bitácora compartida (`SyncLog`).
-  schemas = ["core", "grid", "public"]
+  schemas  = ["core", "grid", "public"]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,20 +73,24 @@ model Persona {
   foto           String?
   activo         Boolean @default(true)
 
-  /* ── Lo que antes vivía en la tabla de credenciales del portal ────────
+  /**
+   * ── Lo que antes vivía en la tabla de credenciales del portal ────────
    * Están aquí y no en cada herramienta porque son de la PERSONA, no de una
    * app: el token de Google es el mismo para las cuatro, y con una copia por
    * herramienta bastaría con que alguien revocara el acceso para dejar tres
-   * copias caducadas sin que nadie se entere. */
+   * copias caducadas sin que nadie se entere.
+   */
   /// Administra la PLATAFORMA. Distinto de `GridAdmin`, que es de esta app.
   es_admin        Boolean @default(false)
   /// El `refresh_token` de Google, compartido entre las cuatro herramientas.
   google_refresco String?
 
-  /* ── Lo que esta persona tiene en Knowledge Grid ──────────────────────
+  /**
+   * ── Lo que esta persona tiene en Knowledge Grid ──────────────────────
    * Las relaciones inversas hacen explícito qué se borra en cascada si
    * alguien deja la empresa: sus guardados, su historial y su avance. Lo que
-   * aportó a la comunidad NO se borra —ver `Question` y `Answer`—. */
+   * aportó a la comunidad NO se borra —ver `Question` y `Answer`—.
+   */
   asignaciones   PathAssignment[]
   guardados      Bookmark[]
   historial      ViewLog[]
@@ -100,9 +104,9 @@ model Persona {
   /// Lo propuesto y comentado sobrevive a la baja de quien lo escribió —es
   /// conocimiento del equipo—, pero los avisos no: son de utilidad solo para
   /// su destinatario.
-  propuestasFaq   FaqPropuesta[]
-  comentariosFaq  FaqComentario[]
-  notificaciones  Notificacion[]
+  propuestasFaq  FaqPropuesta[]
+  comentariosFaq FaqComentario[]
+  notificaciones Notificacion[]
 
   correos PersonaCorreo[]
 
@@ -118,11 +122,11 @@ model Persona {
 ///
 /// La PK es el CORREO: un correo pertenece a una sola persona.
 model PersonaCorreo {
-  correo     String  @id
-  personaId  String  @map("persona_id")
-  persona    Persona @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  correo    String  @id
+  personaId String  @map("persona_id")
+  persona   Persona @relation(fields: [personaId], references: [id], onDelete: Cascade)
   /// El corporativo, el que se muestra por omisión.
-  principal  Boolean @default(false)
+  principal Boolean @default(false)
 
   @@map("persona_correo")
   @@schema("core")
@@ -187,9 +191,11 @@ model Resource {
   /// Estado de la capacitación asociada: Pendiente · Agendada · Impartida.
   training String?
 
-  /* ── Campos internos: solo los ve dirección y administración ──────────
+  /**
+   * ── Campos internos: solo los ve dirección y administración ──────────
    * Son información de gestión —dicen qué está atrasado y de quién es—, y el
-   * recorte ocurre en el repositorio, no ocultándolos en la interfaz. */
+   * recorte ocurre en el repositorio, no ocultándolos en la interfaz.
+   */
   /// ALTA · MEDIA · BAJA · TERMINADO.
   priority String?
   /// Si hace falta para arrancar un proyecto.
@@ -205,7 +211,9 @@ model Resource {
   /// Correo de quien lo subió, cuando es manual.
   createdBy String?
 
-  /* ── Dónde se usa este documento ── */
+  /**
+   * ── Dónde se usa este documento ──
+   */
   enRutas PathItem[]
   enFaq   FaqEntry[]
 
@@ -215,7 +223,6 @@ model Resource {
   @@unique([code, origin])
   @@index([section, position])
   @@index([origin])
-
   @@schema("grid")
 }
 
@@ -251,7 +258,6 @@ model Automation {
   createdAt DateTime @default(now())
 
   @@index([category, createdAt])
-
   @@schema("grid")
 }
 
@@ -279,9 +285,9 @@ model Tool {
   /// Responde a "¿qué está a medias?": el equipo necesita distinguir la
   /// herramienta consolidada de la que todavía se prueba, para no apoyar un
   /// entregable en algo que puede cambiar la semana que viene.
-  status   String  @default("DISPONIBLE")
-  position Int     @default(0)
-  active   Boolean @default(true)
+  status      String  @default("DISPONIBLE")
+  position    Int     @default(0)
+  active      Boolean @default(true)
 
   faq FaqEntry[]
 
@@ -289,7 +295,6 @@ model Tool {
   createdAt DateTime @default(now())
 
   @@index([active, position])
-
   @@schema("grid")
 }
 
@@ -303,7 +308,15 @@ model Tool {
 /// video o bajar una presentación está consultando, no progresando. El avance
 /// existe solo dentro de una ruta asignada (`PathProgress`).
 model Training {
-  id         String   @id @default(cuid())
+  id String @id @default(cuid())
+
+  /// «CAP-001». Da nombre a su carpeta en Drive.
+  ///
+  /// Aparte del título porque el título se corrige y se acorta, y el código no
+  /// cambia nunca: con él delante la carpeta sigue siendo reconocible aunque
+  /// la ficha se renombre. Nulo mientras no se le asigne uno.
+  code String? @unique
+
   title      String
   summary    String?
   /// Qué cubre. Una línea por objetivo.
@@ -330,6 +343,23 @@ model Training {
   period String?
   views  Int     @default(0)
 
+  /// Su carpeta dentro de «Capacitaciones Centro de Conocimiento».
+  ///
+  /// Se guarda para no buscarla por nombre en cada subida, y para que
+  /// renombrar la ficha no deje su material huérfano.
+  driveFolderId String?
+
+  /// El documento de notas del que se importó, si vino de ahí. Permite volver
+  /// al original y no importar dos veces lo mismo.
+  notasDocId String?
+
+  /// Cuándo se impartió. `period` es texto libre («2026-1»); esto es la fecha
+  /// de verdad, que es lo que permite ordenar.
+  impartidaEn DateTime?
+
+  /// Cuánta gente asistió. Da idea de si fue general o de un equipo.
+  asistentes Int @default(0)
+
   topics    TrainingTopic[]
   pathItems PathItem[]
   faq       FaqEntry[]
@@ -341,7 +371,7 @@ model Training {
   createdAt DateTime @default(now())
 
   @@index([status, category])
-
+  @@index([impartidaEn(sort: Desc)])
   @@schema("grid")
 }
 
@@ -368,6 +398,13 @@ model TrainingTopic {
   /// decide cómo incrustarlo a partir de la forma de la URL.
   videoUrl String?
 
+  /// El id de Drive suelto, sin el enlace alrededor. El visor lo necesita así.
+  videoDriveId String?
+
+  /// `true` cuando el video ya vive en la carpeta del Centro. Mientras sea
+  /// `false`, el material depende del Drive de quien lo grabó.
+  videoPropio Boolean @default(false)
+
   materials TrainingMaterial[]
   progress  PathProgress[]
 
@@ -376,7 +413,6 @@ model TrainingTopic {
 
   @@unique([trainingId, code])
   @@index([trainingId, position])
-
   @@schema("grid")
 }
 
@@ -390,13 +426,17 @@ model TrainingMaterial {
   topicId String
   topic   TrainingTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  title String
+  title   String
   /// PDF · PPT · XLS · RVT · ZIP · CANVA · LINK.
-  kind  String  @default("PDF")
-  url   String?
+  kind    String  @default("PDF")
+  url     String?
   /// Id de Drive, cuando el archivo vive ahí y se incrusta con el visor.
-  driveId  String?
-  sizeText String?
+  driveId String?
+
+  /// En qué subcarpeta quedó: «01 Video», «02 Materiales», «03 Notas». Sirve
+  /// para reubicarlo si la capacitación se renombra, sin tener que adivinar.
+  subcarpeta   String?
+  sizeText     String?
   /// Si se puede descargar o solo consultar en pantalla.
   downloadable Boolean @default(true)
   position     Int     @default(0)
@@ -404,7 +444,6 @@ model TrainingMaterial {
   createdAt DateTime @default(now())
 
   @@index([topicId, position])
-
   @@schema("grid")
 }
 
@@ -433,7 +472,6 @@ model LearningPath {
   createdAt DateTime @default(now())
 
   @@index([active])
-
   @@schema("grid")
 }
 
@@ -455,7 +493,6 @@ model PathStage {
   items PathItem[]
 
   @@index([pathId, position])
-
   @@schema("grid")
 }
 
@@ -477,8 +514,8 @@ model PathItem {
   training   Training? @relation(fields: [trainingId], references: [id], onDelete: SetNull)
 
   /// Cuando el elemento es un documento del cronograma.
-  resourceId String?
-  resource   Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  resourceId   String?
+  resource     Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
   /// El código del cronograma ("4.1"), conservado como referencia estable: la
   /// resincronización puede regenerar ids, y el código no cambia.
   resourceCode String?
@@ -490,7 +527,6 @@ model PathItem {
   progress PathProgress[]
 
   @@index([stageId, position])
-
   @@schema("grid")
 }
 
@@ -499,8 +535,8 @@ model PathItem {
 /// Una persona puede tener VARIAS rutas activas a la vez. La fecha de término
 /// en vez de borrar la fila permite decir "ya hiciste esta ruta el año pasado".
 model PathAssignment {
-  id     String       @id @default(cuid())
-  email  String
+  id         String   @id @default(cuid())
+  email      String
   /// La columna puente al padrón. NO se escribe desde la app: un disparador
   /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
   /// cualquiera de sus alternos— en `core.persona`.
@@ -521,7 +557,6 @@ model PathAssignment {
 
   @@unique([email, pathId])
   @@index([email, active])
-
   @@schema("grid")
 }
 
@@ -563,7 +598,6 @@ model PathProgress {
 
   @@unique([assignmentId, itemId, topicId])
   @@index([assignmentId, completed])
-
   @@schema("grid")
 }
 
@@ -584,17 +618,17 @@ model FaqEntry {
   /// Los pasos concretos, cuando la respuesta es un procedimiento.
   steps    String[] @default([])
 
-  /* ───────────────────────────────────────────────────────────────────────
+  /**
+   * ───────────────────────────────────────────────────────────────────────
    * LA FICHA DEL PROBLEMA
-   *
    * Todo lo de aquí abajo es opcional: una FAQ escrita a mano —"¿cada cuánto
    * subo mi modelo?"— no tiene código ni captura de error, y sigue siendo una
    * FAQ válida. Solo las fichas que vienen del catálogo BIM las llevan.
-   *
    * Se añadieron a esta tabla y no a otra nueva a propósito: dos tablas serían
    * dos secciones de preguntas frecuentes en el menú, y quien busca una
    * respuesta no debería tener que adivinar en cuál mirar.
-   * ─────────────────────────────────────────────────────────────────────── */
+   * ───────────────────────────────────────────────────────────────────────
+   */
 
   /// El código del catálogo: `RVT-001`, `FRM-011`. Es la llave que usa el
   /// equipo para hablar entre sí ("checa la RVT-041"), así que se conserva tal
@@ -633,9 +667,11 @@ model FaqEntry {
   imageDriveId String?
   imageName    String?
 
-  /* ── Lo relacionado, ahora con FK reales ── */
-  resourceId String?
-  resource   Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  /**
+   * ── Lo relacionado, ahora con FK reales ──
+   */
+  resourceId   String?
+  resource     Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
   /// El código del cronograma, como referencia estable ante resincronización.
   resourceCode String?
 
@@ -670,7 +706,6 @@ model FaqEntry {
   @@index([published])
   /// Los dos filtros de la pantalla principal, en el orden en que se aplican.
   @@index([platform, category])
-
   @@schema("grid")
 }
 
@@ -686,20 +721,24 @@ model FaqEntry {
 model FaqPropuesta {
   id String @id @default(cuid())
 
-  /* ── Lo que llena quien propone ── */
-  title       String
-  description String
+  /**
+   * ── Lo que llena quien propone ──
+   */
+  title        String
+  description  String
   /// El software donde ocurre. Opcional: quien reporta no siempre sabe si el
   /// problema es de Revit o del conector.
-  platform String?
+  platform     String?
   /// Lo que ya intentó o cree que lo resuelve. Opcional.
-  solution String?
+  solution     String?
   /// La captura, si la adjuntó.
   imageDriveId String?
   imageName    String?
 
-  /* ── Quién la propone ── */
-  email String
+  /**
+   * ── Quién la propone ──
+   */
+  email      String
   /// La columna puente al padrón. NO se escribe desde la app: un disparador
   /// (`core.enlazar_persona`) la rellena al insertar.
   persona_id String?
@@ -709,22 +748,23 @@ model FaqPropuesta {
   authorName String
   authorArea String?
 
-  /* ── Cómo terminó ── */
+  /**
+   * ── Cómo terminó ──
+   */
   /// PENDIENTE · APROBADA · RECHAZADA
-  status String @default("PENDIENTE")
+  status     String    @default("PENDIENTE")
   /// Quién la revisó y qué dijo. `reviewNote` explica un rechazo, que sin
   /// motivo se vive como un portazo.
   reviewedBy String?
   reviewNote String?
   reviewedAt DateTime?
   /// La FAQ que salió de aquí, si se aprobó.
-  faqId String?
+  faqId      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
-
   @@schema("grid")
 }
 
@@ -738,9 +778,9 @@ model FaqComentario {
 
   message String
   /// La ficha sobre la que se comenta, si vino del botón de una.
-  faqId String?
+  faqId   String?
 
-  email String
+  email      String
   /// La columna puente al padrón, que rellena el disparador.
   persona_id String?
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
@@ -763,7 +803,6 @@ model FaqComentario {
   @@index([resolved, createdAt])
   /// La consulta de la ficha: los aceptados de un documento.
   @@index([faqId, status])
-
   @@schema("grid")
 }
 
@@ -779,7 +818,7 @@ model Notificacion {
 
   /// A quién va. Es el correo y no el id porque el correo es la llave con la
   /// que esta plataforma identifica a las personas entre sus cuatro apps.
-  email String
+  email      String
   /// La columna puente al padrón, que rellena el disparador.
   persona_id String?
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
@@ -789,9 +828,9 @@ model Notificacion {
   kind  String
   title String
   /// Una línea de contexto: el título de la pregunta, quién respondió.
-  body String?
+  body  String?
   /// A dónde lleva al pulsarla.
-  href String?
+  href  String?
 
   /// La clave que evita duplicados y permite REVIVIR un aviso.
   ///
@@ -808,7 +847,6 @@ model Notificacion {
   @@unique([email, dedupeKey])
   /// La consulta de la campana: lo de esta persona, lo más reciente primero.
   @@index([email, readAt, createdAt])
-
   @@schema("grid")
 }
 
@@ -817,10 +855,10 @@ model Notificacion {
 /// Una fila por (persona, FAQ) para que nadie infle el contador votando muchas
 /// veces: el número que se muestra tiene que ser confiable.
 model FaqVote {
-  id     String     @id @default(cuid())
-  faqId  String
-  faq    FaqEntry   @relation(fields: [faqId], references: [id], onDelete: Cascade)
-  email  String
+  id         String   @id @default(cuid())
+  faqId      String
+  faq        FaqEntry @relation(fields: [faqId], references: [id], onDelete: Cascade)
+  email      String
   /// La columna puente al padrón. NO se escribe desde la app: un disparador
   /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
   /// cualquiera de sus alternos— en `core.persona`.
@@ -832,7 +870,6 @@ model FaqVote {
   createdAt DateTime @default(now())
 
   @@unique([faqId, email])
-
   @@schema("grid")
 }
 
@@ -863,7 +900,6 @@ model Question {
   persona_id String?
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
 
-
   category String
   software String?
   tags     String[] @default([])
@@ -879,7 +915,6 @@ model Question {
 
   @@index([category, createdAt])
   @@index([email])
-
   @@schema("grid")
 }
 
@@ -904,7 +939,6 @@ model Answer {
   persona_id String?
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
 
-
   validatedAt DateTime?
   validatedBy String?
 
@@ -915,7 +949,6 @@ model Answer {
   createdAt DateTime @default(now())
 
   @@index([questionId, validatedAt])
-
   @@schema("grid")
 }
 
@@ -924,21 +957,19 @@ model Answer {
 /// Una fila por (persona, respuesta): el contador que se muestra tiene que ser
 /// el número de personas, no el número de clics.
 model AnswerVote {
-  id       String     @id @default(cuid())
-  answerId String
-  answer   Answer     @relation(fields: [answerId], references: [id], onDelete: Cascade)
-  email    String
+  id         String   @id @default(cuid())
+  answerId   String
+  answer     Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  email      String
   /// La columna puente al padrón. NO se escribe desde la app: un disparador
   /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
   /// cualquiera de sus alternos— en `core.persona`.
   persona_id String?
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
 
-
   createdAt DateTime @default(now())
 
   @@unique([answerId, email])
-
   @@schema("grid")
 }
 
@@ -957,11 +988,9 @@ model AnswerComment {
   persona_id String?
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: SetNull)
 
-
   createdAt DateTime @default(now())
 
   @@index([answerId, createdAt])
-
   @@schema("grid")
 }
 
@@ -975,14 +1004,13 @@ model AnswerComment {
 /// y ordenados por fecha. Cinco tablas obligarían a cinco consultas y a unirlas
 /// a mano para conseguir exactamente lo mismo.
 model Bookmark {
-  id     String     @id @default(cuid())
-  email  String
+  id         String   @id @default(cuid())
+  email      String
   /// La columna puente al padrón. NO se escribe desde la app: un disparador
   /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
   /// cualquiera de sus alternos— en `core.persona`.
   persona_id String?
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
-
 
   /// doc · cap · tool · faq · com.
   kind     String
@@ -996,7 +1024,6 @@ model Bookmark {
 
   @@unique([email, kind, targetId])
   @@index([email, createdAt])
-
   @@schema("grid")
 }
 
@@ -1005,14 +1032,13 @@ model Bookmark {
 /// Se guarda la última visita de cada elemento, no una fila por apertura: el
 /// historial responde "¿dónde estaba?", no "¿cuántas veces entré?".
 model ViewLog {
-  id     String     @id @default(cuid())
-  email  String
+  id         String   @id @default(cuid())
+  email      String
   /// La columna puente al padrón. NO se escribe desde la app: un disparador
   /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
   /// cualquiera de sus alternos— en `core.persona`.
   persona_id String?
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
-
 
   kind     String
   targetId String
@@ -1022,7 +1048,6 @@ model ViewLog {
 
   @@unique([email, kind, targetId])
   @@index([email, viewedAt])
-
   @@schema("grid")
 }
 
@@ -1037,18 +1062,20 @@ model ViewLog {
 /// plataforma (`core.persona.es_admin`). Separarlas permite delegar una sin la
 /// otra.
 model GridAdmin {
-  email     String     @id
+  email      String   @id
   /// La columna puente al padrón. NO se escribe desde la app: un disparador
   /// (`core.enlazar_persona`) la rellena al insertar, buscando el correo —o
   /// cualquiera de sus alternos— en `core.persona`.
   persona_id String?  @unique
   persona    Persona? @relation(fields: [persona_id], references: [id], onDelete: Cascade)
 
-  /* ── Qué puede hacer ─────────────────────────────────────────────────
+  /**
+   * ── Qué puede hacer ─────────────────────────────────────────────────
    * La fila deja de significar solo «administra»: ahora guarda los tres
    * permisos que existen. Se amplió esta tabla en vez de crear otra porque
    * una segunda tabla de permisos por correo obligaría a mirar en dos sitios
-   * para responder «¿qué puede hacer esta persona?». */
+   * para responder «¿qué puede hacer esta persona?».
+   */
 
   /// Administra Knowledge Grid: capacitaciones, rutas y permisos.
   esAdmin Boolean @default(true)
@@ -1066,7 +1093,7 @@ model GridAdmin {
 
   grantedBy String?
   updatedAt DateTime @default(now()) @updatedAt
-  createdAt DateTime   @default(now())
+  createdAt DateTime @default(now())
 
   @@schema("grid")
 }
