@@ -356,6 +356,117 @@ export async function subirVideoTema(capId: string, form: FormData): Promise<Res
   }
 }
 
+/**
+ * Cambia el video de un tema que ya existe.
+ *
+ * Faltaba, y se notaba: en la edición se veía «con video» pero no CUÁL, así que
+ * no había forma de comprobar a dónde apuntaba ni de corregirlo sin borrar el
+ * tema entero y volver a crearlo.
+ *
+ * Importa sobre todo para los videos que aún viven en el Drive de quien grabó:
+ * son los que un día dejan de abrirse, y hasta ahora no había manera de
+ * repararlos desde aquí.
+ *
+ * Si el enlace es de Drive, se copia a la carpeta del Centro como en el alta.
+ * Vaciar el campo quita el video y deja el tema sin él, que también hace falta
+ * cuando el enlace apuntaba a algo que ya no existe.
+ */
+export async function cambiarVideoTema(
+  temaId: string,
+  capId: string,
+  enlace: string,
+): Promise<Resultado> {
+  await exigirAdmin();
+
+  const cap = await verCapacitacionWired(capId);
+  if (!cap) return { ok: false, error: "Esa capacitación ya no existe." };
+
+  const tema = cap.temas.find((t) => t.id === temaId);
+  if (!tema) return { ok: false, error: "Ese tema ya no existe." };
+
+  const limpio = enlace.trim();
+
+  // Vaciar el campo quita el video.
+  if (!limpio) {
+    await editarTemaWired(temaId, {
+      videoUrl: null,
+      videoDriveId: null,
+      videoPropio: false,
+    });
+    revalidatePath(`/admin/capacitaciones/${capId}`);
+    revalidatePath(`/capacitaciones/${capId}`);
+    return { ok: true };
+  }
+
+  const origen = idDesdeEnlace(limpio);
+
+  // YouTube, Vimeo o un enlace directo: se guardan tal cual, el reproductor ya
+  // sabe incrustarlos.
+  if (!origen) {
+    await editarTemaWired(temaId, {
+      videoUrl: limpio,
+      videoDriveId: null,
+      videoPropio: false,
+    });
+    revalidatePath(`/admin/capacitaciones/${capId}`);
+    revalidatePath(`/capacitaciones/${capId}`);
+    return { ok: true };
+  }
+
+  // Si ya es el mismo archivo que está copiado, no se vuelve a copiar.
+  if (origen === tema.videoDriveId && tema.videoPropio) {
+    return { ok: true };
+  }
+
+  try {
+    const copia = await copiarArchivo(
+      origen,
+      cap.code ?? null,
+      cap.title,
+      "video",
+      `${cap.code ? cap.code + " " : ""}${tema.title}.mp4`,
+    );
+
+    await editarTemaWired(temaId, {
+      videoUrl: `https://drive.google.com/file/d/${copia.driveId}/view`,
+      videoDriveId: copia.driveId,
+      videoPropio: true,
+    });
+
+    revalidatePath(`/admin/capacitaciones/${capId}`);
+    revalidatePath(`/capacitaciones/${capId}`);
+    return { ok: true };
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : String(e);
+    console.error(`[tema] no se pudo copiar el video: ${motivo}`);
+
+    /*
+     * No se pudo copiar, pero el enlace se guarda igual.
+     *
+     * El caso real: el archivo es de otra persona y esta cuenta no lo alcanza.
+     * Guardar el enlace deja la ficha utilizable para quien sí lo vea, y el
+     * aviso dice exactamente qué pasó en vez de dejarlo como un fallo mudo.
+     */
+    await editarTemaWired(temaId, {
+      videoUrl: limpio,
+      videoDriveId: origen,
+      videoPropio: false,
+    });
+
+    revalidatePath(`/admin/capacitaciones/${capId}`);
+    revalidatePath(`/capacitaciones/${capId}`);
+
+    const sinAcceso = /not found|404|permission|403/i.test(motivo);
+    return {
+      ok: true,
+      error: sinAcceso
+        ? "El enlace se guardó, pero el video no se pudo copiar a la carpeta del Centro: " +
+          "tu cuenta no puede abrirlo. Pide que te lo compartan y vuelve a intentarlo."
+        : `El enlace se guardó, pero no se pudo copiar: ${motivo.slice(0, 120)}`,
+    };
+  }
+}
+
 export async function borrarTema(temaId: string, capId: string): Promise<Resultado> {
   await exigirAdmin();
   await eliminarTemaWired(temaId);

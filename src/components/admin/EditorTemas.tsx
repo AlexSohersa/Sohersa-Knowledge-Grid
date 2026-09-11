@@ -5,6 +5,7 @@ import { agregarMaterial, borrarMaterial, borrarTema } from "@/app/(app)/admin/a
 import { estiloExt } from "@/modules/shared/domain/conocimiento";
 import type { Capacitacion, Tema } from "@/modules/capacitaciones/domain/capacitacion";
 import { ErrorAccion, entrada } from "./campos";
+import { VideoDelTema } from "./VideoDelTema";
 import { AgregarTema } from "./AgregarTema";
 
 /**
@@ -159,7 +160,11 @@ function FilaTema({
               {[
                 tema.kind,
                 tema.duration,
-                tema.videoUrl ? "con video" : "sin video",
+                tema.videoUrl
+                  ? tema.videoPropio
+                    ? "video en el Centro"
+                    : "video prestado"
+                  : "sin video",
                 `${tema.materials.length} ${tema.materials.length === 1 ? "material" : "materiales"}`,
               ]
                 .filter(Boolean)
@@ -191,6 +196,9 @@ function FilaTema({
 
       {abierto && (
         <div className="kc-fade" style={{ padding: "0 17px 16px 54px" }}>
+          {/* El video de este tema: cuál es, dónde vive, y cómo cambiarlo. */}
+          <VideoDelTema tema={tema} capId={capId} />
+
           {/* Material ya colgado. */}
           {tema.materials.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
