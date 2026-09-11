@@ -26,12 +26,14 @@ import {
   importarCapacitacion,
   NotasError,
   proponerDesdeNotas,
+  siguienteCodigo,
   type AjustesImportacion,
   type Propuesta,
 } from "@/modules/capacitaciones/infrastructure/importar";
 import {
   copiarArchivo,
   idDesdeEnlace,
+  prepararCarpeta,
   subirArchivo,
 } from "@/modules/capacitaciones/infrastructure/carpeta-drive";
 import {
@@ -88,8 +90,18 @@ export async function crearCapacitacion(form: FormData): Promise<Resultado> {
 
   const duration = String(form.get("duration") ?? "").trim() || null;
 
+  /*
+   * El código se asigna SOLO, siguiendo la serie.
+   *
+   * Antes había que inventárselo, y eso deja huecos y repetidos en cuanto lo
+   * hacen dos personas distintas. Es lo mismo que ya se hace con las fichas del
+   * FAQ: la serie la lleva el sistema, que es quien sabe cuál fue la última.
+   */
+  const code = await siguienteCodigo();
+
   const id = await crearCapacitacionWired(
     {
+      code,
       title,
       summary: String(form.get("summary") ?? "").trim() || null,
       instructor: String(form.get("instructor") ?? "").trim() || null,
@@ -110,6 +122,26 @@ export async function crearCapacitacion(form: FormData): Promise<Resultado> {
     },
     yo.email,
   );
+
+  /*
+   * La carpeta de Drive se prepara AQUÍ, al crear.
+   *
+   * Así, cuando alguien vaya a subir el primer video, la carpeta ya existe con
+   * sus tres subcarpetas y no tiene que preguntarse dónde va cada cosa.
+   *
+   * Si Drive falla no se pierde la capacitación: queda creada y la carpeta se
+   * hará sola en la primera subida. Perder una ficha entera porque Drive tardó
+   * en responder sería peor que quedarse sin carpeta un rato.
+   */
+  try {
+    const carpetaId = await prepararCarpeta(code, title);
+    await editarCapacitacionWired(id, { driveFolderId: carpetaId });
+  } catch (e) {
+    console.error(
+      `[capacitacion] ${code} creada, pero su carpeta de Drive no: ` +
+        `${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
 
   revalidatePath("/admin");
   revalidatePath("/capacitaciones");
@@ -179,18 +211,149 @@ export async function agregarTema(capId: string, form: FormData): Promise<Result
   const title = String(form.get("title") ?? "").trim();
   if (!title) return { ok: false, error: "El tema necesita un título." };
 
+  const cap = await verCapacitacionWired(capId);
+  if (!cap) return { ok: false, error: "Esa capacitación ya no existe." };
+
+  /*
+   * El número del tema se calcula solo: 01, 02, 03…
+   *
+   * Antes había un campo para escribirlo, y quien captura tenía que acordarse
+   * de cuál iba. Es un dato que el sistema ya sabe —basta mirar cuántos hay— y
+   * pedirlo solo servía para que llegaran dos «03» y ningún «04».
+   */
+  const codigo = String(cap.temas.length + 1).padStart(2, "0");
+
+  /*
+   * El video, si lo hay, se trae a la carpeta del Centro.
+   *
+   * Pegar el enlace y dejarlo donde está era lo que hacía antes, y eso deja la
+   * capacitación dependiendo del Drive de quien grabó. Ahora se copia: la
+   * copia es nuestra, y copiar solo exige poder ver el original, así que no
+   * hay que pedirle permisos a nadie.
+   *
+   * Si no se puede copiar —hay quien bloquea la copia—, se guarda el enlace
+   * original y se avisa. Vale más un video enlazado que ningún video.
+   */
+  const enlaceVideo = String(form.get("videoUrl") ?? "").trim();
+  let videoUrl: string | null = enlaceVideo || null;
+  let videoDriveId: string | null = null;
+  let videoPropio = false;
+  let aviso: string | null = null;
+
+  if (enlaceVideo) {
+    const origen = idDesdeEnlace(enlaceVideo);
+
+    if (origen) {
+      try {
+        const copia = await copiarArchivo(
+          origen,
+          cap.code ?? null,
+          cap.title,
+          "video",
+          `${cap.code ? cap.code + " " : ""}${title}.mp4`,
+        );
+        videoUrl = `https://drive.google.com/file/d/${copia.driveId}/view`;
+        videoDriveId = copia.driveId;
+        videoPropio = true;
+      } catch (e) {
+        const motivo = e instanceof Error ? e.message : String(e);
+        console.error(`[tema] no se pudo copiar el video: ${motivo}`);
+        videoDriveId = origen;
+        aviso =
+          "El tema se creó, pero el video no se pudo copiar a la carpeta del Centro. " +
+          "Queda enlazado donde está.";
+      }
+    }
+    // Sin id reconocible —YouTube, Vimeo, un enlace directo— se guarda tal cual:
+    // el reproductor ya sabe incrustar esas formas.
+  }
+
   await agregarTemaWired(capId, {
-    code: String(form.get("code") ?? "").trim() || "00",
+    code: codigo,
     title,
     summary: String(form.get("summary") ?? "").trim() || null,
     kind: String(form.get("kind") ?? "Video"),
     duration: String(form.get("duration") ?? "").trim() || null,
-    videoUrl: String(form.get("videoUrl") ?? "").trim() || null,
+    videoUrl,
+    videoDriveId,
+    videoPropio,
   });
 
   revalidatePath(`/admin/capacitaciones/${capId}`);
   revalidatePath(`/capacitaciones/${capId}`);
-  return { ok: true };
+
+  return aviso ? { ok: true, error: aviso } : { ok: true };
+}
+
+/**
+ * Sube un video desde la computadora y crea su tema.
+ *
+ * La otra mitad de agregar un tema: cuando la grabación no está en Drive sino
+ * en el disco de quien la tiene. Sube a «01 Video» de esa capacitación,
+ * renombrado con su código.
+ *
+ * OJO CON EL TAMAÑO. Las acciones de servidor tienen un tope —configurado en
+ * `next.config`— y una grabación de una sesión larga puede pasarse. Cuando eso
+ * ocurra, lo práctico es subirla a Drive desde el navegador y pegar el enlace:
+ * el resultado es el mismo, porque de ahí se copia a la carpeta del Centro.
+ */
+export async function subirVideoTema(capId: string, form: FormData): Promise<Resultado> {
+  await exigirAdmin();
+
+  const archivo = form.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { ok: false, error: "No llegó ningún archivo." };
+  }
+
+  if (!archivo.type.startsWith("video/")) {
+    return { ok: false, error: "Ese archivo no es un video." };
+  }
+
+  const title = String(form.get("title") ?? "").trim() || "Grabación de la sesión";
+
+  const cap = await verCapacitacionWired(capId);
+  if (!cap) return { ok: false, error: "Esa capacitación ya no existe." };
+
+  const codigo = String(cap.temas.length + 1).padStart(2, "0");
+
+  try {
+    const subido = await subirArchivo(
+      archivo,
+      cap.code ?? null,
+      cap.title,
+      "video",
+      `${cap.code ? cap.code + " " : ""}${title}.mp4`,
+    );
+
+    await agregarTemaWired(capId, {
+      code: codigo,
+      title,
+      kind: "Video",
+      duration: String(form.get("duration") ?? "").trim() || null,
+      videoUrl: `https://drive.google.com/file/d/${subido.driveId}/view`,
+      videoDriveId: subido.driveId,
+      videoPropio: true,
+    });
+
+    revalidatePath(`/admin/capacitaciones/${capId}`);
+    revalidatePath(`/capacitaciones/${capId}`);
+    return { ok: true };
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : String(e);
+    console.error(`[tema] no se pudo subir el video: ${motivo}`);
+
+    // El tope del cuerpo de la petición da un error poco claro; se traduce.
+    if (/body|size|limit|large|exceed/i.test(motivo)) {
+      return {
+        ok: false,
+        error:
+          "El video pesa demasiado para subirlo por aquí. Súbelo a Drive desde el " +
+          "navegador y pega el enlace: se copiará igual a la carpeta del Centro.",
+      };
+    }
+
+    return { ok: false, error: `No se pudo subir: ${motivo.slice(0, 160)}` };
+  }
 }
 
 export async function borrarTema(temaId: string, capId: string): Promise<Resultado> {

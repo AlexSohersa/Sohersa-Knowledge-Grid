@@ -42,7 +42,21 @@ export function FormularioCapacitacion() {
         <input name="title" required placeholder="Documentación y revisiones en Revit" style={entrada} />
       </Campo>
 
-      <Campo etiqueta="Resumen" ayuda="Una o dos líneas: qué se lleva quien la tome.">
+      {/*
+        Resumen y objetivos son OPCIONALES, y conviene que se note.
+
+        Prometen «qué cubre» esta capacitación, así que solo valen si los
+        escribe alguien que la conoce. Medio llenarlos —o rellenarlos con lo que
+        uno supone viendo el título— es peor que dejarlos vacíos: quien lee la
+        ficha no puede distinguir un objetivo real de uno inventado, y acaba sin
+        fiarse de ninguno.
+
+        Una ficha con el video y nada más es honesta: ahí está la sesión.
+      */}
+      <Campo
+        etiqueta="Resumen"
+        ayuda="Opcional. Una o dos líneas, si sabes de qué va. Mejor vacío que a medias."
+      >
         <textarea
           name="summary"
           rows={3}
@@ -51,7 +65,10 @@ export function FormularioCapacitacion() {
         />
       </Campo>
 
-      <Campo etiqueta="Objetivos" ayuda="Uno por línea. Aparecen como 'Al terminar sabrás'.">
+      <Campo
+        etiqueta="Objetivos"
+        ayuda="Opcional, uno por línea. Salen como «Al terminar sabrás», así que solo lo que de verdad cubra."
+      >
         <textarea
           name="objectives"
           rows={3}

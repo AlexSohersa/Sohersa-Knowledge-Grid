@@ -1,15 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import {
-  agregarMaterial,
-  agregarTema,
-  borrarMaterial,
-  borrarTema,
-} from "@/app/(app)/admin/acciones";
+import { agregarMaterial, borrarMaterial, borrarTema } from "@/app/(app)/admin/acciones";
 import { estiloExt } from "@/modules/shared/domain/conocimiento";
 import type { Capacitacion, Tema } from "@/modules/capacitaciones/domain/capacitacion";
-import { BotonEnviar, Campo, ErrorAccion, TituloFormulario, entrada } from "./campos";
+import { ErrorAccion, entrada } from "./campos";
+import { AgregarTema } from "./AgregarTema";
 
 /**
  * El temario en edición: agregar temas y colgarles material.
@@ -21,12 +17,6 @@ import { BotonEnviar, Campo, ErrorAccion, TituloFormulario, entrada } from "./ca
  */
 export function EditorTemas({ cap }: { cap: Capacitacion }) {
   const [abierto, setAbierto] = useState<string | null>(cap.temas[0]?.id ?? null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function nuevoTema(form: FormData) {
-    const res = await agregarTema(cap.id, form);
-    setError(res.ok ? null : (res.error ?? "No se pudo agregar el tema."));
-  }
 
   return (
     <div
@@ -70,63 +60,7 @@ export function EditorTemas({ cap }: { cap: Capacitacion }) {
       </div>
 
       {/* ── Nuevo tema ──────────────────────────────────────────────────── */}
-      <form action={nuevoTema} className="kc-panel kc-rise" style={{ padding: "18px 19px" }}>
-        <TituloFormulario ayuda="El número decide el orden en que aparece.">
-          Agregar tema
-        </TituloFormulario>
-
-        <ErrorAccion mensaje={error} />
-
-        <div style={{ display: "grid", gridTemplateColumns: "72px 1fr", gap: 10 }}>
-          <Campo etiqueta="Nº">
-            <input
-              name="code"
-              required
-              placeholder="01"
-              defaultValue={String(cap.temas.length + 1).padStart(2, "0")}
-              style={entrada}
-            />
-          </Campo>
-          <Campo etiqueta="Tipo">
-            <select name="kind" defaultValue="Video" style={entrada}>
-              <option>Video</option>
-              <option>Presentación</option>
-              <option>Ejercicio</option>
-              <option>Lectura</option>
-            </select>
-          </Campo>
-        </div>
-
-        <Campo etiqueta="Título">
-          <input name="title" required placeholder="Revisiones: emisión y control" style={entrada} />
-        </Campo>
-
-        <Campo etiqueta="Descripción">
-          <textarea
-            name="summary"
-            rows={2}
-            placeholder="Qué se cubre en este tema."
-            style={{ ...entrada, lineHeight: 1.55, resize: "vertical" }}
-          />
-        </Campo>
-
-        <Campo etiqueta="Duración">
-          <input name="duration" placeholder="46 min" style={entrada} />
-        </Campo>
-
-        <Campo
-          etiqueta="Enlace del video"
-          ayuda="Drive, YouTube o un enlace directo. Se reconoce solo."
-        >
-          <input
-            name="videoUrl"
-            placeholder="https://drive.google.com/file/d/…/view"
-            style={entrada}
-          />
-        </Campo>
-
-        <BotonEnviar pendienteTexto="Agregando…">Agregar tema</BotonEnviar>
-      </form>
+      <AgregarTema cap={cap} />
     </div>
   );
 }

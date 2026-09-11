@@ -154,13 +154,21 @@ export async function importarCapacitacion(
   }
 
   // 2 · La ficha.
-  const duracion = estimarDuracion(propuesta.temas.length);
 
   const datos = {
     code: codigo,
     title: ajustes.titulo,
     summary: ajustes.resumen,
-    objectives: propuesta.objetivos,
+    /*
+     * Los objetivos NO salen de las notas.
+     *
+     * Los «próximos pasos» de Gemini son los pendientes de esa reunión
+     * —«entregar las hojas a Alba»—, no lo que la capacitación enseña. Se
+     * probó ponerlos y la ficha acababa prometiendo cosas que nadie decidió.
+     *
+     * Quedan vacíos: los escribe quien conozca la capacitación, editando.
+     */
+    objectives: [],
     instructor: ajustes.instructor,
     category: ajustes.categoria,
     level: ajustes.nivel,
@@ -169,8 +177,15 @@ export async function importarCapacitacion(
     notasDocId: propuesta.notasDocId,
     impartidaEn: propuesta.fecha,
     asistentes: propuesta.asistentes,
-    durationMin: duracion.min,
-    duration: duracion.texto,
+    /*
+     * Sin duración.
+     *
+     * Se estimaba a diez minutos por punto del desglose, y eso daba «~3 h 10
+     * min» con un aire de dato medido que no tenía: salía de contar párrafos.
+     * La duración real la sabe quien vea el video, y se pone editando.
+     */
+    durationMin: 0,
+    duration: null,
     period: propuesta.fecha ? `${propuesta.fecha.getFullYear()}` : null,
   };
 
@@ -216,21 +231,31 @@ export async function importarCapacitacion(
     .trainingTopic.count({ where: { trainingId: cap.id } })
     .catch(() => 0);
 
+  /*
+   * UN SOLO TEMA: la grabación.
+   *
+   * Antes se creaba un tema por cada punto del desglose de las notas, con su
+   * descripción. Esos puntos los redactó un modelo escuchando la reunión, y en
+   * la ficha se leían como si alguien los hubiera escrito para enseñar. Un
+   * temario de diecinueve puntos que nadie revisó aparenta un trabajo de
+   * preparación que no existe.
+   *
+   * Lo que de verdad hay es una grabación. Eso es lo que se guarda, sin
+   * descripción: quien quiera saber de qué va, la ve. Si más adelante alguien
+   * desglosa la sesión de verdad, se añaden los temas desde la edición.
+   */
   let creados = 0;
   if (hayTemas === 0) {
-    for (const [i, t] of propuesta.temas.entries()) {
-      await gridDb().trainingTopic.create({
-        data: {
-          trainingId: cap.id,
-          code: String(i + 1).padStart(2, "0"),
-          title: t.titulo,
-          summary: t.detalle,
-          kind: "Video",
-          position: i,
-        },
-      });
-      creados++;
-    }
+    await gridDb().trainingTopic.create({
+      data: {
+        trainingId: cap.id,
+        code: "01",
+        title: "Grabación de la sesión",
+        kind: "Video",
+        position: 0,
+      },
+    });
+    creados = 1;
   }
 
   /*
@@ -323,25 +348,6 @@ export async function importarCapacitacion(
   };
 }
 
-/**
- * Cuánto dura, estimado a partir de cuántos temas trae.
- *
- * Las notas no dicen la duración. Una sesión de estas ronda los diez minutos
- * por punto tratado, que es una aproximación honesta y editable, mejor que
- * dejar la ficha en «0 min» —que se lee como un dato, y es falso—.
- */
-function estimarDuracion(temas: number): { min: number; texto: string | null } {
-  if (temas === 0) return { min: 0, texto: null };
-
-  const min = Math.max(30, temas * 10);
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-
-  return {
-    min,
-    texto: h > 0 ? (m > 0 ? `~${h} h ${m} min` : `~${h} h`) : `~${m} min`,
-  };
-}
 
 /** El enlace a la carpeta del Centro, para enseñarlo al terminar. */
 export function enlaceCarpeta(id: string): string {
