@@ -21,15 +21,7 @@ import {
   publicarCapacitacionWired,
   verCapacitacionWired,
 } from "@/modules/capacitaciones/infrastructure/wiring";
-import {
-  enlaceCarpeta,
-  importarCapacitacion,
-  NotasError,
-  proponerDesdeNotas,
-  siguienteCodigo,
-  type AjustesImportacion,
-  type Propuesta,
-} from "@/modules/capacitaciones/infrastructure/importar";
+import { siguienteCodigo } from "@/modules/capacitaciones/infrastructure/codigos";
 import {
   copiarArchivo,
   idDesdeEnlace,
@@ -1083,88 +1075,6 @@ export async function guardarPermisosDe(
     return { ok: true };
   } catch {
     return { ok: false, error: "No se pudieron guardar los permisos." };
-  }
-}
-
-/* ── Importar capacitaciones desde notas de Gemini ───────────────────────── */
-
-/**
- * Lee unas notas y devuelve lo que se importaría, SIN guardar nada.
- *
- * Es la mitad de «previsualizar antes de aceptar» que ya usan las propuestas
- * del FAQ, y por el mismo motivo: lo que sale de un documento generado
- * automáticamente merece una revisión humana antes de quedar publicado. El
- * instructor, por ejemplo, se deduce de quién conduce la sesión en las notas
- * —una deducción, no un dato— y conviene confirmarla.
- *
- * Corre con la cuenta de quien lo pide: si esa persona no puede abrir el
- * documento, esto falla igual que le fallaría a ella en el navegador.
- */
-export async function previsualizarNotas(
-  enlace: string,
-): Promise<{ ok: true; propuesta: Propuesta } | { ok: false; error: string }> {
-  await exigirAdmin();
-
-  if (!enlace.trim()) return { ok: false, error: "Pega el enlace del documento de notas." };
-
-  try {
-    const propuesta = await proponerDesdeNotas(enlace);
-
-    if (propuesta.temas.length === 0) {
-      return {
-        ok: false,
-        error:
-          "El documento se abrió pero no tiene desglose de temas. ¿Seguro que son notas de Gemini de una capacitación?",
-      };
-    }
-
-    return { ok: true, propuesta };
-  } catch (e) {
-    if (e instanceof NotasError) return { ok: false, error: e.message };
-    const motivo = e instanceof Error ? e.message : String(e);
-    console.error(`[importar] fallo al leer las notas: ${motivo}`);
-    return { ok: false, error: "No se pudieron leer las notas. Revisa el enlace." };
-  }
-}
-
-/**
- * Guarda la capacitación y deja su material en la carpeta del Centro.
- *
- * Devuelve los avisos de lo que no salió —un video que no se dejó copiar, por
- * ejemplo— en vez de tragárselos: quien importa tiene que enterarse de que el
- * video sigue viviendo en el Drive de otra persona.
- */
-export async function importarNotas(
-  propuesta: Propuesta,
-  ajustes: AjustesImportacion,
-): Promise<
-  | { ok: true; id: string; codigo: string; carpeta: string; temas: number; avisos: string[] }
-  | { ok: false; error: string }
-> {
-  const yo = await exigirAdmin();
-
-  if (!ajustes.titulo.trim()) return { ok: false, error: "La capacitación necesita un título." };
-
-  try {
-    const r = await importarCapacitacion(propuesta, ajustes, yo.email);
-
-    revalidatePath("/admin/capacitaciones");
-    revalidatePath("/capacitaciones");
-    revalidatePath("/", "layout");
-
-    return {
-      ok: true,
-      id: r.capacitacionId,
-      codigo: r.codigo,
-      carpeta: enlaceCarpeta(r.carpetaId),
-      temas: r.temas,
-      avisos: r.avisos,
-    };
-  } catch (e) {
-    if (e instanceof NotasError) return { ok: false, error: e.message };
-    const motivo = e instanceof Error ? e.message : String(e);
-    console.error(`[importar] fallo al guardar: ${motivo}`);
-    return { ok: false, error: `No se pudo importar: ${motivo.slice(0, 200)}` };
   }
 }
 

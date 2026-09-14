@@ -4,8 +4,7 @@ import { Icon } from "@/components/layout/icons";
 import { Pill } from "@/components/ui/Pill";
 import { PageHead } from "@/components/ui/PageHead";
 import { FormularioCapacitacion } from "@/components/admin/FormularioCapacitacion";
-import { ImportarCapacitacion } from "@/components/admin/ImportarCapacitacion";
-import { ENLACE_CARPETA_MADRE } from "@/modules/capacitaciones/infrastructure/importar";
+import { ENLACE_CARPETA_MADRE } from "@/modules/capacitaciones/infrastructure/codigos";
 
 export const revalidate = 0;
 
@@ -131,14 +130,9 @@ export default async function AdminCapacitacionesPage() {
           )}
         </div>
 
-        {/* ── Importar y crear ────────────────────────────────────────── */}
+        {/* ── Crear ───────────────────────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {/*
-            Importar va ANTES que crear a mano, y es deliberado: casi todas las
-            capacitaciones nacen de una sesión grabada con sus notas, así que
-            ese es el camino normal. Crear desde cero es la excepción.
-          */}
-          <ImportarCapacitacion />
+          
 
           <FormularioCapacitacion />
 
