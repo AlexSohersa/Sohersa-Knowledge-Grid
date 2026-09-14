@@ -113,6 +113,22 @@ export default async function AdminCapacitacionesPage() {
                     </span>
                     <span style={{ fontSize: 11, color: "var(--kc-ink-3)" }}>
                       {[
+                        /*
+                         * La fecha va PRIMERO, y se avisa cuando falta.
+                         *
+                         * Es lo que decide el orden del catálogo, así que en la
+                         * pantalla donde se administra tiene que verse de un
+                         * vistazo cuáles se quedaron sin ella: son las que
+                         * salen al final de la lista y hay que completar.
+                         */
+                        cap.impartidaEn
+                          ? new Date(cap.impartidaEn).toLocaleDateString("es-MX", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              timeZone: "America/Mexico_City",
+                            })
+                          : "sin fecha",
                         cap.category,
                         cap.instructor,
                         `${total} ${total === 1 ? "tema" : "temas"}`,

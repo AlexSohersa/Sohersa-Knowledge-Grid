@@ -72,6 +72,21 @@ async function exigirAdmin() {
 
 export type Resultado = { ok: boolean; error?: string };
 
+/**
+ * La fecha de un `<input type="date">`, o `null` si no la pusieron.
+ *
+ * Se construye a MEDIODÍA y no a medianoche: un `new Date("2026-08-27")` se
+ * interpreta como medianoche UTC, que en México es el día anterior por la
+ * tarde, y la ficha acabaría diciendo que se impartió el 26.
+ */
+function fechaDelFormulario(valor: FormDataEntryValue | null): Date | null {
+  const s = String(valor ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const d = new Date(`${s}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+
 /* ── Capacitaciones ─────────────────────────────────────────────────────── */
 
 export async function crearCapacitacion(form: FormData): Promise<Resultado> {
@@ -107,6 +122,7 @@ export async function crearCapacitacion(form: FormData): Promise<Resultado> {
       software: String(form.get("software") ?? "").trim() || null,
       accent: String(form.get("accent") ?? "#32D66B"),
       period: String(form.get("period") ?? "").trim() || null,
+      impartidaEn: fechaDelFormulario(form.get("impartidaEn")),
       objectives: String(form.get("objectives") ?? "")
         .split("\n")
         .map((o) => o.trim())
@@ -157,6 +173,7 @@ export async function editarCapacitacion(id: string, form: FormData): Promise<Re
     software: String(form.get("software") ?? "").trim() || null,
     accent: String(form.get("accent") ?? "#32D66B"),
     period: String(form.get("period") ?? "").trim() || null,
+    impartidaEn: fechaDelFormulario(form.get("impartidaEn")),
     objectives: String(form.get("objectives") ?? "")
       .split("\n")
       .map((o) => o.trim())

@@ -140,7 +140,27 @@ export const repositorioCapacitaciones: RepositorioCapacitaciones = {
             : {}),
         },
         include: INCLUIR_TODO,
-        orderBy: { createdAt: "desc" },
+        /*
+         * De la más reciente a la más antigua, por CUÁNDO SE IMPARTIÓ.
+         *
+         * Antes ordenaba por `createdAt` —cuándo se capturó la ficha—, y eso no
+         * dice nada: once capacitaciones cargadas la misma tarde salían juntas
+         * en el orden en que se teclearon, mezclando una sesión de febrero con
+         * otra de agosto.
+         *
+         * `nulls: "last"` importa mientras haya fichas sin fecha: en Postgres
+         * un `DESC` pone los nulos PRIMERO por omisión, así que sin esto las
+         * capacitaciones a las que aún no se les ha puesto fecha encabezarían
+         * la lista, que es justo lo contrario de lo que se busca.
+         *
+         * `createdAt` queda de desempate para que dos sesiones del mismo día
+         * —o las que aún no tienen fecha— salgan en un orden estable y no
+         * bailen entre recargas.
+         */
+        orderBy: [
+          { impartidaEn: { sort: "desc", nulls: "last" } },
+          { createdAt: "desc" },
+        ],
       })
       .catch(() => [] as FilaConTodo[]);
 

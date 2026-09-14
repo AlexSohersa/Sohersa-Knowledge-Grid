@@ -4,6 +4,7 @@ import { verCapacitacionWired } from "@/modules/capacitaciones/infrastructure/wi
 import { Icon } from "@/components/layout/icons";
 import { Pill } from "@/components/ui/Pill";
 import { EditorTemas } from "@/components/admin/EditorTemas";
+import { EditarCapacitacion } from "@/components/admin/EditarCapacitacion";
 import { AccionesCapacitacion } from "@/components/admin/AccionesCapacitacion";
 
 export const revalidate = 0;
@@ -105,6 +106,15 @@ export default async function AdminCapacitacionPage({
             tieneTemas={cap.temas.length > 0}
           />
         </div>
+      </div>
+
+      {/*
+        Editar los datos va en su propia franja, no en la fila de botones: el
+        formulario, al abrirse, necesita el ancho de la pantalla para que los
+        campos no queden en una columna estrecha.
+      */}
+      <div style={{ marginBottom: 20, maxWidth: 640 }}>
+        <EditarCapacitacion cap={cap} />
       </div>
 
       <EditorTemas cap={cap} />

@@ -108,8 +108,23 @@ export function FormularioCapacitacion() {
         </Campo>
       </div>
 
+      {/*
+        La fecha manda el orden del catálogo: de la más reciente a la más
+        antigua. Sin ella, la capacitación se va al final de la lista, después
+        de todas las que sí la tienen.
+
+        Es distinta de «Periodo», que es texto libre para mostrar: «ago 2026»
+        se lee bien pero no se puede ordenar.
+      */}
+      <Campo
+        etiqueta="Cuándo se impartió"
+        ayuda="Manda el orden del catálogo. Sin fecha, la capacitación sale al final."
+      >
+        <input name="impartidaEn" type="date" style={entrada} />
+      </Campo>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <Campo etiqueta="Periodo" ayuda="Ej. ago 2026">
+        <Campo etiqueta="Periodo" ayuda="Opcional. Texto que se muestra, ej. ago 2026">
           <input name="period" placeholder="ago 2026" style={entrada} />
         </Campo>
         <Campo etiqueta="Color">
