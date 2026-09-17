@@ -155,9 +155,9 @@ export function Rail({
               lineHeight: 1.15,
             }}
           >
-            Knowledge
+            Centro de
             <br />
-            Grid
+            Conocimiento
           </div>
         </div>
       </div>
