@@ -1,10 +1,10 @@
 /**
- * Aplica el SQL de Knowledge Grid a la base configurada en DATABASE_URL.
+ * Aplica el SQL de Centro de Conocimiento a la base configurada en DATABASE_URL.
  *
  * Se usa esto y NO `prisma db push` porque la base es COMPARTIDA: `db push`
  * compara el esquema con la base entera y quiere borrar todo lo que no esté
  * declarado —las tablas de horas, catálogos y vacaciones de las otras
- * herramientas—. Este script solo AÑADE lo de Knowledge Grid.
+ * herramientas—. Este script solo AÑADE lo de Centro de Conocimiento.
  *
  * Es idempotente: el SQL usa `IF NOT EXISTS` en todo.
  *

@@ -66,7 +66,7 @@ export function SinAcceso({ correo, urlPortal }: { correo: string; urlPortal: st
 
         <p style={{ fontSize: 13.5, color: "#5A6B7D", lineHeight: 1.6, margin: "0 0 6px" }}>
           Tu sesión está bien —entraste como <strong>{correo}</strong>—, pero el
-          Knowledge Grid no está entre las herramientas que te tocan.
+          El Centro de Conocimiento no está entre las herramientas que te tocan.
         </p>
 
         <p style={{ fontSize: 13, color: "#5A6B7D", lineHeight: 1.6, margin: "0 0 24px" }}>

@@ -1,5 +1,5 @@
 /**
- * El glifo de Sohersa Knowledge Grid: un núcleo con un satélite en órbita.
+ * El glifo de Centro de Conocimiento: un núcleo con un satélite en órbita.
  *
  * Es la marca de la herramienta y sale tal cual del diseño. La órbita gira sola
  * —16 segundos por vuelta, lo bastante lento para no distraer— y se detiene

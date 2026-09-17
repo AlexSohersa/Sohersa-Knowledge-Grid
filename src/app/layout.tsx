@@ -3,7 +3,7 @@ import "@/styles/tokens.css";
 import "@/styles/grid.css";
 
 export const metadata: Metadata = {
-  title: "Sohersa Knowledge Grid",
+  title: "Centro de Conocimiento",
   description:
     "Manuales, estándares, herramientas, capacitaciones y la experiencia del equipo de SOHERSA.",
 };

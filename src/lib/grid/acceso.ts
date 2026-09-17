@@ -19,6 +19,18 @@ import { db } from "@/lib/grid/db";
  * `TeamMember` es del portal, y declararla aquí crearía dos dueños para la
  * misma tabla cuando lo único que hace falta es leer un dato.
  */
+/*
+ * NO SE RENOMBRA, aunque la herramienta ahora se llame «Centro de
+ * Conocimiento».
+ *
+ * Esto no es un nombre: es la CLAVE con la que el portal identifica esta
+ * herramienta al repartir permisos. Cambiarla aquí sin cambiarla a la vez en
+ * el portal dejaría a todo el mundo fuera —el portal seguiría escondiendo
+ * «knowledge-grid» y aquí se preguntaría por otra cosa—.
+ *
+ * El día que se cambie, va acompañado de una actualización del portal y de un
+ * `UPDATE` sobre los `hiddenApps` que ya estén guardados.
+ */
 const ID_HERRAMIENTA = "knowledge-grid";
 
 /**

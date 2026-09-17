@@ -107,7 +107,7 @@ export default async function InicioPage() {
                   color: "var(--kc-green)",
                 }}
               >
-                SOHERSA KNOWLEDGE GRID
+                CENTRO DE CONOCIMIENTO
               </span>
             </span>
 
@@ -396,7 +396,7 @@ export default async function InicioPage() {
                 letterSpacing: "-.018em",
               }}
             >
-              Bienvenido a Sohersa Knowledge Grid
+              Bienvenido al Centro de Conocimiento
             </p>
             <p
               style={{

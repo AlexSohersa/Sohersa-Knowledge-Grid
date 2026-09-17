@@ -7,7 +7,7 @@ import { isAllowedEmail } from "./access";
 import { guardarFoto, guardarRefresh, leerRefresh, olvidarRefresh } from "./refresh";
 
 /**
- * Configuración completa de Knowledge Grid.
+ * Configuración completa de Centro de Conocimiento.
  *
  * Sin adaptador de base de datos: la sesión es un JWT y la identidad de la
  * persona ya la mantiene el núcleo en `core.persona`. Lo único que se persiste

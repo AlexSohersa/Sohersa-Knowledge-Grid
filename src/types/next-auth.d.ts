@@ -1,7 +1,7 @@
 import type { DefaultSession } from "next-auth";
 
 /**
- * Lo que Knowledge Grid añade a la sesión de NextAuth.
+ * Lo que Centro de Conocimiento añade a la sesión de NextAuth.
  *
  * Los tokens de Google viajan en el JWT para poder abrir Drive con la cuenta de
  * cada persona desde el servidor. Se declaran opcionales porque una sesión

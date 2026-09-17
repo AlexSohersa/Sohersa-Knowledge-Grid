@@ -1,4 +1,4 @@
-# Sohersa Knowledge Grid
+# Centro de Conocimiento
 
 La cuarta herramienta de la plataforma digital de SOHERSA. Reúne en un solo
 sitio lo que la empresa sabe: manuales y estándares, las herramientas con las
@@ -6,7 +6,7 @@ que se trabaja, las capacitaciones del equipo, las rutas de formación, las
 preguntas frecuentes y la comunidad de preguntas y respuestas.
 
 ```
-Digital Core (:3000) · Deal Engine (:3001) · Evaluación 360 (:3003) · Knowledge Grid (:3004)
+Digital Core (:3000) · Deal Engine (:3001) · Evaluación 360 (:3003) · Centro de Conocimiento (:3004)
 ```
 
 ---
@@ -16,7 +16,7 @@ Digital Core (:3000) · Deal Engine (:3001) · Evaluación 360 (:3003) · Knowle
 ```bash
 npm install                  # instala y genera el cliente de Prisma
 cp .env.example .env.local   # y rellena los valores (ver abajo)
-npm run db:migrate           # crea las tablas de Knowledge Grid
+npm run db:migrate           # crea las tablas de Centro de Conocimiento
 npm run db:seed:real         # carga el material REAL del cronograma
 npm run dev                  # http://localhost:3004
 ```

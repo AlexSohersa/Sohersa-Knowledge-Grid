@@ -1,5 +1,5 @@
 /**
- * Semilla de Sohersa Knowledge Grid.
+ * Semilla de Centro de Conocimiento.
  *
  * Carga los datos reales que trae el diseño: las herramientas de la empresa,
  * las capacitaciones con sus temas, la ruta de coordinación BIM, las preguntas
@@ -432,7 +432,7 @@ const FAQS = [
     category: "Procesos",
     question: "¿Dónde registro las horas que dedico a un proyecto?",
     answer:
-      "En el Gestor de actividad de la Plataforma de Conexión, con el código de proyecto correspondiente. El Sohersa Knowledge Grid no registra horas.",
+      "En el Gestor de actividad de la Plataforma de Conexión, con el código de proyecto correspondiente. El Centro de Conocimiento no registra horas.",
     steps: [
       "Entra a la Plataforma de Conexión.",
       "Abre el Gestor de actividad y elige la fecha.",
@@ -568,7 +568,7 @@ const PREGUNTAS = [
 /* ── Ejecución ──────────────────────────────────────────────────────────── */
 
 async function main() {
-  console.log("Sembrando Sohersa Knowledge Grid…\n");
+  console.log("Sembrando Centro de Conocimiento…\n");
 
   /* Herramientas */
   const herramientasPorNombre = new Map<string, string>();

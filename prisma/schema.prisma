@@ -2,7 +2,7 @@
 // SOHERSA — BASE UNIFICADA
 // =============================================================================
 // Todas las herramientas de la plataforma comparten UNA base. Este esquema
-// declara la parte que le toca a Sohersa Knowledge Grid:
+// declara la parte que le toca a Centro de Conocimiento:
 //
 //   · Las tablas PROPIAS: capacitaciones, rutas, FAQ, comunidad, guardados.
 //   · Las tablas del CONOCIMIENTO —`Resource` y `Automation`—, que pasan a ser
@@ -86,7 +86,7 @@ model Persona {
   google_refresco String?
 
   /**
-   * ── Lo que esta persona tiene en Knowledge Grid ──────────────────────
+   * ── Lo que esta persona tiene en Centro de Conocimiento ──────────────────────
    * Las relaciones inversas hacen explícito qué se borra en cascada si
    * alguien deja la empresa: sus guardados, su historial y su avance. Lo que
    * aportó a la comunidad NO se borra —ver `Question` y `Answer`—.
@@ -162,7 +162,7 @@ model SyncLog {
 /// Un documento del cronograma de estandarización.
 ///
 /// Manuales, instructivos, estándares, plantillas y familias. Es el corazón de
-/// la biblioteca y AHORA ES DE KNOWLEDGE GRID: el módulo de Recursos se retira
+/// la biblioteca y AHORA ES DE CENTRO DE CONOCIMIENTO: el módulo de Recursos se retira
 /// de Digital Core porque su lugar natural es el Centro de Conocimiento.
 ///
 /// El contenido se sincroniza desde el "Cronograma de Estandarización" en
@@ -1081,7 +1081,7 @@ model ViewLog {
 // ADMINISTRACIÓN
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Quién administra Sohersa Knowledge Grid.
+/// Quién administra Centro de Conocimiento.
 ///
 /// Lista corta y propia: administrar aquí significa publicar capacitaciones,
 /// armar rutas y validar respuestas, que no es lo mismo que administrar la
@@ -1103,7 +1103,7 @@ model GridAdmin {
    * para responder «¿qué puede hacer esta persona?».
    */
 
-  /// Administra Knowledge Grid: capacitaciones, rutas y permisos.
+  /// Administra Centro de Conocimiento: capacitaciones, rutas y permisos.
   esAdmin Boolean @default(true)
 
   /// Revisa las propuestas y los comentarios del FAQ.

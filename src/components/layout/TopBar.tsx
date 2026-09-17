@@ -106,7 +106,7 @@ export function TopBar({
           <span style={{ color: "var(--cv-dk-3)", display: "flex" }}>
             <Icon name="search" size={14} />
           </span>
-          <span className="kc-sr">Buscar en Sohersa Knowledge Grid</span>
+          <span className="kc-sr">Buscar en el Centro de Conocimiento</span>
           <input
             ref={inputRef}
             value={q}

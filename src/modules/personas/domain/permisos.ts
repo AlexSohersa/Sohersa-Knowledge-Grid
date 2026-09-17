@@ -32,7 +32,7 @@ export const SECCIONES: Array<{ id: Seccion; nombre: string; detalle: string }> 
  * de formación ni los permisos de nadie, y al revés.
  */
 export interface Permisos {
-  /** Administra Knowledge Grid: capacitaciones, rutas, permisos. */
+  /** Administra Centro de Conocimiento: capacitaciones, rutas, permisos. */
   esAdmin: boolean;
   /** Revisa las propuestas y los comentarios del FAQ. */
   revisaFaq: boolean;

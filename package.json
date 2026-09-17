@@ -2,7 +2,7 @@
   "name": "sohersa-knowledge-grid",
   "version": "0.1.0",
   "private": true,
-  "description": "Sohersa Knowledge Grid — manuales, herramientas, capacitaciones, rutas, FAQ y comunidad",
+  "description": "Centro de Conocimiento — manuales, herramientas, capacitaciones, rutas, FAQ y comunidad",
   "scripts": {
     "dev": "next dev -p 3004",
     "build": "npm run db:generate && next build",

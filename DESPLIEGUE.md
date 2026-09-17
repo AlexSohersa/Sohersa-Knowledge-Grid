@@ -1,4 +1,4 @@
-# Desplegar Sohersa Knowledge Grid
+# Desplegar Centro de Conocimiento
 
 Guía verificada contra la base de producción real (Neon) el 21 de agosto de 2026.
 El código ya está en GitHub; lo que queda son cuatro pasos, en este orden.
@@ -21,7 +21,7 @@ aparecieron:
 | `public."SyncLog"` | 58 sincronizaciones |
 | esquema `grid` | **no existe todavía** — lo crea el paso 3 |
 
-Esos 152 documentos son la biblioteca que Knowledge Grid hereda. El paso 3 los
+Esos 152 documentos son la biblioteca que Centro de Conocimiento hereda. El paso 3 los
 copia a `grid."Resource"` **sin borrar el original**, para que el portal siga
 funcionando hasta que retires su sección de Recursos.
 
@@ -82,7 +82,7 @@ el código ya trae el valor correcto por omisión.
 
 ### Las que NO se ponen
 
-Ninguna base de otras herramientas. Knowledge Grid saca del esquema `core` de la
+Ninguna base de otras herramientas. Centro de Conocimiento saca del esquema `core` de la
 misma base todo lo que necesita del padrón.
 
 ---
@@ -218,7 +218,7 @@ comentarios y avisos— y **aborta si el número de fichas oficiales cambia**.
 
 Dos cosas que dependen del portal, no de aquí:
 
-- En `src/lib/apps.ts` del portal, cambiar Knowledge Grid de
+- En `src/lib/apps.ts` del portal, cambiar Centro de Conocimiento de
   `status: "planned"` a `"live"`.
 - Añadir `NEXT_PUBLIC_URL_KNOWLEDGE_GRID=https://TU-DOMINIO.vercel.app` a las
   variables del portal, para que el botón de Herramientas abra algo.

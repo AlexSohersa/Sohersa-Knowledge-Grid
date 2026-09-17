@@ -1,5 +1,5 @@
 /**
- * Los iconos de Sohersa Knowledge Grid.
+ * Los iconos de Centro de Conocimiento.
  *
  * Se dibujan a mano en vez de tomarlos de una librería porque el diseño usa
  * trazos concretos —el nodo con satélite de "Mi ruta", los dos bloques de la

@@ -39,7 +39,7 @@ export interface FiltrosBiblioteca {
  * PORT principal: lo que la aplicación necesita de la biblioteca.
  *
  * Solo LECTURA, y no por olvido: los manuales los mantiene Digital Core
- * sincronizando el cronograma desde Google Sheets. Si Knowledge Grid pudiera
+ * sincronizando el cronograma desde Google Sheets. Si Centro de Conocimiento pudiera
  * escribirlos, la siguiente sincronización pisaría el cambio y el usuario vería
  * su edición desaparecer sin explicación.
  */

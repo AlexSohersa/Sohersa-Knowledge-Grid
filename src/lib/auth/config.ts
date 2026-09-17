@@ -2,7 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
 /**
- * Scopes que pide Knowledge Grid.
+ * Scopes que pide Centro de Conocimiento.
  *
  * Los mismos que el portal, y a propósito. Google concede permisos POR CUENTA,
  * no por aplicación: si esta herramienta pidiera un subconjunto distinto,
@@ -28,7 +28,7 @@ export const GOOGLE_SCOPES = [
  * Prefijo de cookie COMPARTIDO — la pieza que hace el inicio de sesión único.
  *
  * Las apps de la plataforma (portal :3000, Deal Engine :3001, Evaluación 360
- * :3003 y este Sohersa Knowledge Grid :3004) usan el prefijo por defecto
+ * :3003 y este Centro de Conocimiento :3004) usan el prefijo por defecto
  * `authjs.` y el MISMO `AUTH_SECRET`. En localhost las cookies se comparten por
  * dominio —el puerto no cuenta—, así que la sesión que emite una la reconocen
  * las otras y no se vuelve a pedir el selector de cuenta.

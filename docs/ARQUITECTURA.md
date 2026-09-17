@@ -1,4 +1,4 @@
-# Arquitectura · Sohersa Knowledge Grid
+# Arquitectura · Centro de Conocimiento
 
 Documento para quien vaya a tocar este código. Explica **por qué** está armado
 así, no solo cómo.
@@ -36,12 +36,12 @@ de uso con un repositorio falso, y cambiar lo de abajo sin tocar las reglas.
 
 | | `grid.prisma` | `portal.prisma` |
 |---|---|---|
-| Dueño | Knowledge Grid | Digital Core |
+| Dueño | Centro de Conocimiento | Digital Core |
 | Acceso | lectura + escritura | **solo lectura** |
 | Contiene | capacitaciones, rutas, FAQ, comunidad, avances, guardados | manuales del cronograma, automatizaciones, el equipo |
 
 Los manuales los sincroniza Digital Core desde el Cronograma de Estandarización
-en Google Sheets. **Si Knowledge Grid los escribiera**, la siguiente
+en Google Sheets. **Si Centro de Conocimiento los escribiera**, la siguiente
 sincronización pisaría el cambio y la edición desaparecería sin explicación
 —el peor tipo de fallo, porque no avisa—.
 

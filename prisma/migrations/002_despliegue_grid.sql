@@ -1,5 +1,5 @@
 -- =============================================================================
--- Sohersa Knowledge Grid · despliegue sobre la base unificada
+-- Centro de Conocimiento · despliegue sobre la base unificada
 -- =============================================================================
 -- Crea el esquema `grid` y sus 20 tablas sobre una base que YA tiene `core`
 -- (el padrón: persona, proyecto, cliente) y `public` (las tablas de las demás
@@ -24,7 +24,7 @@ CREATE SCHEMA IF NOT EXISTS "grid";
 
 -- CreateTable
 -- `public."SyncLog"` ya existe en producción: la comparten todas las
--- herramientas. Knowledge Grid solo escribe filas con target = 'recursos'.
+-- herramientas. Centro de Conocimiento solo escribe filas con target = 'recursos'.
 
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "grid"."Resource" (

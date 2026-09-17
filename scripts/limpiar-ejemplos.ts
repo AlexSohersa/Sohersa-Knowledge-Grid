@@ -1,7 +1,7 @@
 /**
  * Borra los datos de EJEMPLO, dejando solo lo real.
  *
- * Knowledge Grid se estrena con dos secciones, y las dos tienen contenido
+ * Centro de Conocimiento se estrena con dos secciones, y las dos tienen contenido
  * verdadero:
  *
  *   · La BIBLIOTECA — los documentos del cronograma, que el equipo ya usa.

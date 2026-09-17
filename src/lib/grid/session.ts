@@ -26,7 +26,7 @@ export type CurrentUser = {
   /** Puesto y área, para la línea bajo el nombre. */
   role: string | null;
   area: string | null;
-  /** Administra Sohersa Knowledge Grid. */
+  /** Administra Centro de Conocimiento. */
   isAdmin: boolean;
 };
 
@@ -39,7 +39,7 @@ function iniciales(nombre: string): string {
 }
 
 /**
- * Si esta persona administra Sohersa Knowledge Grid.
+ * Si esta persona administra Centro de Conocimiento.
  *
  * Se consulta en dos lugares y basta con uno:
  *   1. La tabla `GridAdmin`, que es la lista viva y editable.

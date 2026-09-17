@@ -139,7 +139,7 @@ export default async function BuscarPage({
         title={`“${consulta}”`}
         description={`${resultados.length} ${
           resultados.length === 1 ? "resultado" : "resultados"
-        } en todo Sohersa Knowledge Grid`}
+        } en todo el Centro de Conocimiento`}
         accent="var(--kc-teal)"
       />
 

@@ -5,7 +5,7 @@ import { GoogleButton } from "./google-button";
 
 const ERROR_MESSAGES: Record<string, string> = {
   AccessDenied:
-    "Tu cuenta no tiene acceso a Sohersa Knowledge Grid. Usa tu correo @gruposohersa.com o pide que te den de alta.",
+    "Tu cuenta no tiene acceso al Centro de Conocimiento. Usa tu correo @gruposohersa.com o pide que te den de alta.",
   OAuthSignin: "No se pudo iniciar la conexión con Google. Vuelve a intentarlo.",
   OAuthCallback: "Google rechazó la respuesta. Vuelve a intentarlo.",
   Configuration: "Falta configuración del servidor. Avisa al equipo de sistemas.",
@@ -36,7 +36,7 @@ const PILARES = [
 ];
 
 /**
- * La puerta de Sohersa Knowledge Grid.
+ * La puerta del Centro de Conocimiento.
  *
  * Dos columnas: a la izquierda qué es esto, a la derecha cómo entrar. El botón
  * de Google es el único camino porque la empresa entera vive en Workspace, y
@@ -177,7 +177,7 @@ export default async function LoginPage({
                   lineHeight: 1.1,
                 }}
               >
-                Knowledge Grid
+                Centro de Conocimiento
               </div>
             </div>
           </div>

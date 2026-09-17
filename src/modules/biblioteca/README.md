@@ -32,7 +32,7 @@ De la tabla `Resource` del **portal**, en modo espejo de **solo lectura**
 (`prisma/portal.prisma`). Digital Core la sincroniza desde el "Cronograma de
 Estandarización" en Google Sheets.
 
-Knowledge Grid no escribe ahí a propósito: la siguiente sincronización pisaría
+Centro de Conocimiento no escribe ahí a propósito: la siguiente sincronización pisaría
 cualquier cambio hecho desde aquí y la edición desaparecería sin explicación.
 
 ## Campos internos
