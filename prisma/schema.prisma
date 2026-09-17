@@ -289,12 +289,38 @@ model Tool {
   position    Int     @default(0)
   active      Boolean @default(true)
 
+  /// El enlace de descarga: un archivo de Drive o una dirección directa.
+  ///
+  /// Las dos formas tienen que caber: un `.dyn` guardado en Drive y la página
+  /// de descarga de un fabricante son ambas «de dónde sale esto».
+  downloadUrl String?
+
+  /// El id de Drive suelto, cuando el archivo vive ahí.
+  ///
+  /// Aparte del enlace porque Drive usa una dirección distinta para DESCARGAR
+  /// que para VER, y construirla exige el id limpio.
+  driveFileId String?
+
+  /// Cómo se llama el archivo y cuánto pesa, para enseñarlo antes de bajarlo.
+  fileName     String?
+  fileSizeText String?
+
+  /// Con qué funciona: «Revit 2023–2025», «Power BI».
+  compat String?
+
+  /// Cuántas veces se descargó: la señal de qué se usa de verdad.
+  downloads Int @default(0)
+
+  /// Quién la registró, para saber a quién preguntarle.
+  createdBy String?
+
   faq FaqEntry[]
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
   @@index([active, position])
+  @@index([active, downloads(sort: Desc)])
   @@schema("grid")
 }
 

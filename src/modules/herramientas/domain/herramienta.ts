@@ -18,6 +18,16 @@ export interface Herramienta {
   status: EstadoAdopcion;
   position: number;
   active: boolean;
+
+  /// De dónde se descarga, cuando trae archivo.
+  downloadUrl: string | null;
+  driveFileId: string | null;
+  fileName: string | null;
+  fileSizeText: string | null;
+  /// Con qué funciona: «Revit 2023–2025».
+  compat: string | null;
+  downloads: number;
+  createdBy: string | null;
 }
 
 /**

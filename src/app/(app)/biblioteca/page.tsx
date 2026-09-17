@@ -2,7 +2,6 @@ import { exigirSeccion } from "@/lib/grid/session";
 import { listarBibliotecaWired } from "@/modules/biblioteca/infrastructure/wiring";
 import { listarGuardadosWired } from "@/modules/personal/infrastructure/wiring";
 import { haceCuanto } from "@/modules/shared/domain/formato";
-import { BibliotecaTabs } from "@/components/biblioteca/BibliotecaTabs";
 import { BibliotecaExplorador } from "@/components/biblioteca/BibliotecaExplorador";
 import { BotonSincronizar } from "@/components/biblioteca/BotonSincronizar";
 import { EmptyState } from "@/components/ui/PageHead";
@@ -69,7 +68,6 @@ export default async function BibliotecaPage() {
         </span>
       </div>
 
-      <BibliotecaTabs />
 
       {total === 0 ? (
         <EmptyState title="La biblioteca está vacía">

@@ -11,6 +11,7 @@ import {
 import { estaGuardadoWired, registrarVisitaWired } from "@/modules/personal/infrastructure/wiring";
 import { BotonVolver } from "@/components/ui/BotonVolver";
 import { Pill } from "@/components/ui/Pill";
+import { BloqueDescarga } from "@/components/herramientas/BloqueDescarga";
 import { BotonGuardar } from "@/components/ui/BotonGuardar";
 
 export const revalidate = 0;
@@ -120,6 +121,10 @@ export default async function HerramientaPage({
           <Dato etiqueta="Licenciamiento" valor={h.license} />
           <Dato etiqueta="Disciplinas" valor={h.discipline} />
         </dl>
+
+        {/* El archivo, si lo trae. Debajo de los datos: primero qué es, luego
+            cómo llevárselo. */}
+        <BloqueDescarga h={h} />
       </div>
     </div>
   );

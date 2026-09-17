@@ -26,6 +26,13 @@ type Fila = {
   status: string;
   position: number;
   active: boolean;
+  downloadUrl: string | null;
+  driveFileId: string | null;
+  fileName: string | null;
+  fileSizeText: string | null;
+  compat: string | null;
+  downloads: number;
+  createdBy: string | null;
 };
 
 function aHerramienta(f: Fila): Herramienta {
@@ -38,6 +45,13 @@ function aHerramienta(f: Fila): Herramienta {
     license: f.license,
     discipline: f.discipline,
     accent: f.accent,
+    downloadUrl: f.downloadUrl,
+    driveFileId: f.driveFileId,
+    fileName: f.fileName,
+    fileSizeText: f.fileSizeText,
+    compat: f.compat,
+    downloads: f.downloads,
+    createdBy: f.createdBy,
     /*
      * La base guarda texto libre; el dominio trabaja con un conjunto cerrado.
      * Un valor que no reconozcamos se trata como disponible, que es el caso

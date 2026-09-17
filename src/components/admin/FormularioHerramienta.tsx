@@ -100,6 +100,42 @@ export function FormularioHerramienta() {
         <input name="discipline" placeholder="Modelado · Documentación" style={entrada} />
       </Campo>
 
+      {/*
+        El archivo descargable.
+
+        Antes esto vivía en «Biblioteca › Automatizaciones», una sección aparte
+        que se pisaba con esta: «Automatización» es además uno de los tipos de
+        herramienta, así que Dynamo salía en un sitio y un script hecho con
+        Dynamo en el otro. Ahora es lo mismo: una herramienta puede traer su
+        archivo, y quien entra lo descarga de aquí.
+
+        Es OPCIONAL a propósito: Revit o ACC no se descargan de ningún sitio
+        nuestro, y su ficha sigue teniendo sentido sin archivo.
+      */}
+      <Campo
+        etiqueta="Enlace de descarga"
+        ayuda="Opcional. De Drive o una dirección directa. Quien lo pulse descargará el archivo sin pasos intermedios."
+      >
+        <input
+          name="downloadUrl"
+          placeholder="https://drive.google.com/file/d/…/view"
+          style={entrada}
+        />
+      </Campo>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <Campo etiqueta="Nombre del archivo" ayuda="Lo que se enseña antes de bajarlo">
+          <input name="fileName" placeholder="Renombrar-vistas.dyn" style={entrada} />
+        </Campo>
+        <Campo etiqueta="Tamaño" ayuda="Opcional">
+          <input name="fileSizeText" placeholder="2.4 MB" style={entrada} />
+        </Campo>
+      </div>
+
+      <Campo etiqueta="Compatibilidad" ayuda="Opcional. Con qué funciona.">
+        <input name="compat" placeholder="Revit 2023–2025" style={entrada} />
+      </Campo>
+
       <Campo etiqueta="Estado de adopción">
         <select
           name="status"

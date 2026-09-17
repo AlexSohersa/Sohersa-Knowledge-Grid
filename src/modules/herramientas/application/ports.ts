@@ -23,6 +23,13 @@ export interface DatosHerramienta {
   status?: EstadoAdopcion;
   position?: number;
   active?: boolean;
+
+  downloadUrl?: string | null;
+  driveFileId?: string | null;
+  fileName?: string | null;
+  fileSizeText?: string | null;
+  compat?: string | null;
+  createdBy?: string | null;
 }
 
 export interface RepositorioHerramientas {

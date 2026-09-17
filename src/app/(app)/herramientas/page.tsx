@@ -4,6 +4,7 @@ import { listarHerramientasWired } from "@/modules/herramientas/infrastructure/w
 import { estiloAdopcion, etiquetaAdopcion } from "@/modules/herramientas/domain/herramienta";
 import { EmptyState } from "@/components/ui/PageHead";
 import { IconoHerramienta } from "@/components/herramientas/IconoHerramienta";
+import { esDescargable } from "@/modules/herramientas/domain/descarga";
 
 export const revalidate = 0;
 
@@ -11,9 +12,13 @@ export const revalidate = 0;
  * Las herramientas de la empresa.
  *
  * Cada una es una puerta a todo lo que se sabe sobre ella: sus instructivos,
- * sus capacitaciones, sus automatizaciones y las preguntas que ya se
- * resolvieron. Por eso la fila muestra contadores y no solo la ficha del
- * software.
+ * sus capacitaciones y las preguntas que ya se resolvieron. Por eso la fila
+ * muestra contadores y no solo la ficha del software.
+ *
+ * Es además donde vive lo DESCARGABLE —scripts de Dynamo, plantillas,
+ * complementos—, que antes estaba en «Biblioteca › Automatizaciones». Las dos
+ * secciones se pisaban: «Automatización» es uno de los tipos de herramienta,
+ * así que Dynamo salía en un sitio y un script hecho con Dynamo en el otro.
  */
 export default async function HerramientasPage() {
   await exigirSeccion("herramientas");
@@ -111,6 +116,39 @@ export default async function HerramientasPage() {
                     {h.version && (
                       <span style={{ fontSize: 10.5, color: "var(--kc-ink-4)" }}>
                         v{h.version}
+                      </span>
+                    )}
+                    {/* Lo descargable se marca en la fila: es lo que alguien
+                        viene a buscar cuando entra a esta sección, y si no se
+                        distingue hay que abrirlas una por una. */}
+                    {esDescargable(h) && (
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 600,
+                          color: "#178A49",
+                          background: "#E4F8EB",
+                          borderRadius: 6,
+                          padding: "3px 7px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <svg
+                          width="9"
+                          height="9"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16" />
+                        </svg>
+                        Descargable
                       </span>
                     )}
                     {/* El estado solo se muestra cuando NO es lo normal: si

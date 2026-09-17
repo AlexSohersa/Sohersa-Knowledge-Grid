@@ -54,6 +54,7 @@ import {
   editarHerramientaWired,
 } from "@/modules/herramientas/infrastructure/wiring";
 import { minutosDeTexto } from "@/modules/shared/domain/formato";
+import { idDriveDe } from "@/modules/herramientas/domain/descarga";
 
 /**
  * Acciones de Administración.
@@ -86,6 +87,29 @@ function fechaDelFormulario(valor: FormDataEntryValue | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+
+
+/**
+ * Los campos de descarga de una herramienta, saneados.
+ *
+ * El id de Drive se saca AQUÍ y se guarda aparte del enlace, porque Drive usa
+ * una dirección para ver y otra para descargar: con el id suelto se construye
+ * la de descarga, y quien pulse el botón recibe el archivo en vez de una
+ * pestaña con la vista previa.
+ *
+ * Un enlace que no sea de Drive se guarda tal cual: la página de descarga de un
+ * fabricante es igual de válida, y quien la puso sabe a dónde lleva.
+ */
+function descargaDelFormulario(form: FormData) {
+  const enlace = String(form.get("downloadUrl") ?? "").trim();
+  return {
+    downloadUrl: enlace || null,
+    driveFileId: enlace ? idDriveDe(enlace) : null,
+    fileName: String(form.get("fileName") ?? "").trim() || null,
+    fileSizeText: String(form.get("fileSizeText") ?? "").trim() || null,
+    compat: String(form.get("compat") ?? "").trim() || null,
+  };
+}
 
 /* ── Capacitaciones ─────────────────────────────────────────────────────── */
 
@@ -682,12 +706,14 @@ export async function borrarFaq(id: string): Promise<Resultado> {
 /* ── Herramientas ───────────────────────────────────────────────────────── */
 
 export async function crearHerramienta(form: FormData): Promise<Resultado> {
-  await exigirAdmin();
+  const yo = await exigirAdmin();
 
   const name = String(form.get("name") ?? "").trim();
   if (!name) return { ok: false, error: "La herramienta necesita un nombre." };
 
   await crearHerramientaWired({
+    ...descargaDelFormulario(form),
+    createdBy: yo.email,
     name,
     kind: String(form.get("kind") ?? "Software"),
     description: String(form.get("description") ?? "").trim() || null,
@@ -711,6 +737,7 @@ export async function editarHerramienta(id: string, form: FormData): Promise<Res
   await exigirAdmin();
 
   await editarHerramientaWired(id, {
+    ...descargaDelFormulario(form),
     name: String(form.get("name") ?? "").trim(),
     kind: String(form.get("kind") ?? "Software"),
     description: String(form.get("description") ?? "").trim() || null,
