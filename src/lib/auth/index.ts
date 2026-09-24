@@ -4,6 +4,7 @@ import type { AdapterUser } from "next-auth/adapters";
 import type { JWT } from "next-auth/jwt";
 import { authConfig } from "./config";
 import { isAllowedEmail } from "./access";
+import { portalConfigured, portalDb } from "@/lib/portal/db";
 import { guardarFoto, guardarRefresh, leerRefresh, olvidarRefresh } from "./refresh";
 
 /**
@@ -343,6 +344,30 @@ async function jwtInterno({
           // Si la renovación falla se sigue con el token viejo.
         }
       }
+
+      /*
+       * La foto guardada, para cuando el token no traiga ninguna.
+       *
+       * `token.picture` solo se rellena al pasar por Google. Quien entra con
+       * la sesión ya abierta desde el Core no pasa por ahí y se quedaba con
+       * las iniciales, aunque su foto estuviera guardada y funcionando.
+       *
+       * Una vez por sesión: en cuanto hay valor no se vuelve a preguntar. Las
+       * URLs que guarda el portal no caducan —se comprobaron todas—, así que
+       * una guardada sirve indefinidamente.
+       */
+      if (!token.picture && !token.fotoBD && token.email && portalConfigured) {
+        try {
+          const fila = await portalDb().persona.findFirst({
+            where: { correos: { some: { correo: token.email as string } } },
+            select: { foto: true },
+          });
+          if (fila?.foto) token.fotoBD = fila.foto;
+        } catch (e) {
+          console.error("[foto] no se pudo leer la guardada", e);
+        }
+      }
+
 
     return token;
   }
