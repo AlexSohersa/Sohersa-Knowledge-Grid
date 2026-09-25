@@ -31,6 +31,9 @@ type Fila = {
   fileName: string | null;
   fileSizeText: string | null;
   compat: string | null;
+  manualUrl: string | null;
+  manualDriveId: string | null;
+  manualFileName: string | null;
   downloads: number;
   createdBy: string | null;
 };
@@ -50,6 +53,9 @@ function aHerramienta(f: Fila): Herramienta {
     fileName: f.fileName,
     fileSizeText: f.fileSizeText,
     compat: f.compat,
+    manualUrl: f.manualUrl,
+    manualDriveId: f.manualDriveId,
+    manualFileName: f.manualFileName,
     downloads: f.downloads,
     createdBy: f.createdBy,
     /*
@@ -115,6 +121,9 @@ export const repositorioHerramientas: RepositorioHerramientas = {
         fileName: datos.fileName ?? null,
         fileSizeText: datos.fileSizeText ?? null,
         compat: datos.compat ?? null,
+        manualUrl: datos.manualUrl ?? null,
+        manualDriveId: datos.manualDriveId ?? null,
+        manualFileName: datos.manualFileName ?? null,
         createdBy: datos.createdBy ?? null,
       },
       select: { id: true },

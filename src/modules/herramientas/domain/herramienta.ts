@@ -26,6 +26,10 @@ export interface Herramienta {
   fileSizeText: string | null;
   /// Con qué funciona: «Revit 2023–2025».
   compat: string | null;
+  /// El manual, cuando lo trae: enlace, id de Drive y nombre del archivo.
+  manualUrl: string | null;
+  manualDriveId: string | null;
+  manualFileName: string | null;
   downloads: number;
   createdBy: string | null;
 }

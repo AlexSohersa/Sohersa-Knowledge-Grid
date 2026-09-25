@@ -143,6 +143,37 @@ async function descargaDelFormulario(form: FormData) {
   };
 }
 
+/**
+ * El manual de una herramienta, saneado.
+ *
+ * Mismo trato que el archivo: el id de Drive se guarda suelto para que la
+ * plataforma pueda traerlo, y el nombre se pregunta a Drive para enseñarlo en
+ * la ficha. Si esa lectura falla, el manual se guarda igual, sin nombre.
+ */
+async function manualDelFormulario(form: FormData) {
+  const enlace = String(form.get("manualUrl") ?? "").trim();
+  const manualDriveId = enlace ? idDriveDe(enlace) : null;
+  let manualFileName: string | null = null;
+
+  if (manualDriveId) {
+    try {
+      const drive = await getDriveClient();
+      const meta = await drive.files.get({
+        fileId: manualDriveId,
+        fields: "name",
+        supportsAllDrives: true,
+      });
+      manualFileName = meta.data.name ?? null;
+    } catch (e) {
+      console.error(
+        `[herramientas] metadatos del manual ${manualDriveId}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+  }
+
+  return { manualUrl: enlace || null, manualDriveId, manualFileName };
+}
+
 /* ── Capacitaciones ─────────────────────────────────────────────────────── */
 
 export async function crearCapacitacion(form: FormData): Promise<Resultado> {
@@ -745,6 +776,7 @@ export async function crearHerramienta(form: FormData): Promise<Resultado> {
 
   await crearHerramientaWired({
     ...(await descargaDelFormulario(form)),
+    ...(await manualDelFormulario(form)),
     createdBy: yo.email,
     name,
     kind: String(form.get("kind") ?? "Software"),
@@ -773,6 +805,7 @@ export async function editarHerramienta(id: string, form: FormData): Promise<Res
 
   await editarHerramientaWired(id, {
     ...(await descargaDelFormulario(form)),
+    ...(await manualDelFormulario(form)),
     name,
     kind: String(form.get("kind") ?? "Software"),
     accent: String(form.get("accent") ?? "#32D66B"),

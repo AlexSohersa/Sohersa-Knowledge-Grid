@@ -143,6 +143,18 @@ export function FormularioHerramienta({ herramienta: h }: { herramienta?: Herram
         </Campo>
       </div>
 
+      <Campo
+        etiqueta="Manual"
+        ayuda="Opcional. El enlace del PDF en Drive. Aparece en la ficha para verlo o descargarlo."
+      >
+        <input
+          name="manualUrl"
+          defaultValue={h?.manualUrl ?? ""}
+          placeholder="https://drive.google.com/file/d/…/view"
+          style={entrada}
+        />
+      </Campo>
+
       <Campo etiqueta="Compatibilidad" ayuda="Opcional. Con qué funciona.">
         <input name="compat" defaultValue={h?.compat ?? ""} placeholder="Revit 2023–2025" style={entrada} />
       </Campo>

@@ -308,6 +308,14 @@ model Tool {
   /// Con qué funciona: «Revit 2023–2025», «Power BI».
   compat String?
 
+  /// El manual de la herramienta: enlace de Drive o dirección directa.
+  ///
+  /// Ligado a la herramienta y no buscado por nombre en la biblioteca: la
+  /// coincidencia de texto se rompe en cuanto alguien renombra algo.
+  manualUrl      String?
+  manualDriveId  String?
+  manualFileName String?
+
   /// Cuántas veces se descargó: la señal de qué se usa de verdad.
   downloads Int @default(0)
 

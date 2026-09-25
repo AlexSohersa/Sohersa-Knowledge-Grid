@@ -172,7 +172,7 @@ export function BloqueDescarga({
 }
 
 /** Por qué no salió el archivo, en palabras de quien lo pulsó. */
-const AVISOS: Record<string, string> = {
+export const AVISOS: Record<string, string> = {
   acceso:
     "No se pudo traer el archivo de Drive. Puede que tu cuenta no tenga acceso a él o que se haya movido; pide a quien lo subió que lo comparta contigo.",
   sesion: "Tu sesión no tiene permisos de Google. Cierra sesión y vuelve a entrar.",

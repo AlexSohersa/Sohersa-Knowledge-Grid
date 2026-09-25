@@ -22,6 +22,10 @@ import { gridConfigured, gridDb } from "@/lib/grid/db";
  *
  * Un enlace que no es de Drive —la página de un fabricante— no se puede traer:
  * se redirige a él, como antes.
+ *
+ * Sirve también el MANUAL de la herramienta (`?archivo=manual`), por el mismo
+ * camino y con las mismas reglas. Con `?ver=1` el archivo se entrega para
+ * abrirse en el navegador —un PDF se lee en la pestaña— en vez de guardarse.
  */
 
 export const runtime = "nodejs";
@@ -34,6 +38,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const consulta = new URL(req.url).searchParams;
+  const esManual = consulta.get("archivo") === "manual";
+  const ver = consulta.get("ver") === "1";
   const ficha = `/herramientas/${encodeURIComponent(id)}`;
 
   // Una ruta que sirve archivos comprueba la sesión por su cuenta: es la clase
@@ -47,19 +54,33 @@ export async function GET(
    * El destino se lee de la base y nunca de la petición: si viniera en la URL,
    * esto sería un redirector abierto con el dominio de la empresa.
    */
-  const h = await gridDb()
+  const fila = await gridDb()
     .tool.findUnique({
       where: { id },
-      select: { downloadUrl: true, driveFileId: true, fileName: true },
+      select: {
+        downloadUrl: true,
+        driveFileId: true,
+        fileName: true,
+        manualUrl: true,
+        manualDriveId: true,
+        manualFileName: true,
+      },
     })
     .catch(() => null);
 
-  if (!h) return volver(req, "/herramientas");
+  if (!fila) return volver(req, "/herramientas");
 
-  if (!h.driveFileId) {
-    const externo = h.downloadUrl?.trim();
+  // Qué archivo se pide. Solo el de la herramienta cuenta como descarga: el
+  // contador mide qué se USA, y leer un manual no es usar la herramienta.
+  const h = esManual
+    ? { enlace: fila.manualUrl, driveId: fila.manualDriveId, nombre: fila.manualFileName }
+    : { enlace: fila.downloadUrl, driveId: fila.driveFileId, nombre: fila.fileName };
+  const contarSi = esManual ? async () => undefined : () => contar(id);
+
+  if (!h.driveId) {
+    const externo = h.enlace?.trim();
     if (!externo || !/^https?:\/\//i.test(externo)) return volver(req, ficha);
-    await contar(id);
+    await contarSi();
     return NextResponse.redirect(externo);
   }
 
@@ -67,7 +88,7 @@ export async function GET(
     const drive = await getDriveClient();
 
     const meta = await drive.files.get({
-      fileId: h.driveFileId,
+      fileId: h.driveId,
       fields: "name,size,mimeType",
       supportsAllDrives: true,
     });
@@ -79,24 +100,24 @@ export async function GET(
      */
     const tipo = meta.data.mimeType ?? "application/octet-stream";
     if (tipo.startsWith("application/vnd.google-apps.")) {
-      console.error(`[descarga] ${id}: ${h.driveFileId} es ${tipo}, no un archivo`);
-      return volver(req, ficha, "tipo");
+      console.error(`[descarga] ${id}: ${h.driveId} es ${tipo}, no un archivo`);
+      return volver(req, ficha, "tipo", esManual);
     }
 
     const archivo = await drive.files.get(
-      { fileId: h.driveFileId, alt: "media", supportsAllDrives: true },
+      { fileId: h.driveId, alt: "media", supportsAllDrives: true },
       { responseType: "stream" },
     );
 
-    await contar(id);
+    await contarSi();
 
     // El nombre de Drive manda: es el del archivo real, con su extensión. El
     // que se escribió a mano en el formulario queda como respaldo.
-    const nombre = meta.data.name || h.fileName || "descarga";
+    const nombre = meta.data.name || h.nombre || (esManual ? "manual" : "descarga");
 
     const headers: Record<string, string> = {
       "Content-Type": tipo,
-      "Content-Disposition": disposicion(nombre),
+      "Content-Disposition": disposicion(nombre, ver),
       "Cache-Control": "private, no-store",
     };
     if (meta.data.size) headers["Content-Length"] = meta.data.size;
@@ -112,9 +133,9 @@ export async function GET(
      * saber cuál fue. Se registra el id, nunca el contenido.
      */
     const motivo = e instanceof Error ? e.message : String(e);
-    console.error(`[descarga] ${id} (${h.driveFileId}): ${motivo}`);
+    console.error(`[descarga] ${id} (${h.driveId}): ${motivo}`);
 
-    return volver(req, ficha, e instanceof GoogleAuthError ? "sesion" : "acceso");
+    return volver(req, ficha, e instanceof GoogleAuthError ? "sesion" : "acceso", esManual);
   }
 }
 
@@ -122,9 +143,11 @@ export async function GET(
  * De vuelta a la ficha, con el motivo en la URL para que la ficha lo explique.
  * Una página de error suelta dejaría a la persona fuera de la aplicación.
  */
-function volver(req: Request, ruta: string, motivo?: string) {
+function volver(req: Request, ruta: string, motivo?: string, esManual = false) {
   const url = new URL(ruta, req.url);
-  if (motivo) url.searchParams.set("descarga", motivo);
+  // Cada bloque de la ficha lee su propio parámetro: el aviso sale junto al
+  // botón que se pulsó.
+  if (motivo) url.searchParams.set(esManual ? "manual" : "descarga", motivo);
   return NextResponse.redirect(url);
 }
 
@@ -139,15 +162,16 @@ async function contar(id: string) {
 }
 
 /**
- * `attachment` con el nombre en las dos formas: la ASCII para navegadores
+ * `attachment` —o `inline`, para verlo en el navegador— con el nombre en las
+ * dos formas: la ASCII para navegadores
  * viejos y la UTF-8 (RFC 5987) para que «Tablas de áreas.zip» llegue con su
  * acento.
  */
-function disposicion(nombre: string): string {
+function disposicion(nombre: string, ver = false): string {
   const ascii = nombre
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\x20-\x7E]/g, "_")
     .replace(/["\\]/g, "_");
-  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombre)}`;
+  return `${ver ? "inline" : "attachment"}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombre)}`;
 }

@@ -12,6 +12,7 @@ import { estaGuardadoWired, registrarVisitaWired } from "@/modules/personal/infr
 import { BotonVolver } from "@/components/ui/BotonVolver";
 import { Pill } from "@/components/ui/Pill";
 import { BloqueDescarga } from "@/components/herramientas/BloqueDescarga";
+import { BloqueManual } from "@/components/herramientas/BloqueManual";
 import { BotonGuardar } from "@/components/ui/BotonGuardar";
 
 export const revalidate = 0;
@@ -22,10 +23,10 @@ export default async function HerramientaPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ de?: string; ref?: string; descarga?: string }>;
+  searchParams: Promise<{ de?: string; ref?: string; descarga?: string; manual?: string }>;
 }) {
   const { id } = await params;
-  const { de, ref, descarga } = await searchParams;
+  const { de, ref, descarga, manual } = await searchParams;
   const yo = await exigirSeccion("herramientas");
 
   const h = await verHerramientaWired(id);
@@ -125,6 +126,7 @@ export default async function HerramientaPage({
         {/* El archivo, si lo trae. Debajo de los datos: primero qué es, luego
             cómo llevárselo. */}
         <BloqueDescarga h={h} fallo={descarga} />
+        <BloqueManual h={h} fallo={manual} />
       </div>
     </div>
   );

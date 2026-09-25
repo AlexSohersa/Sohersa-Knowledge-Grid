@@ -29,6 +29,9 @@ export interface DatosHerramienta {
   fileName?: string | null;
   fileSizeText?: string | null;
   compat?: string | null;
+  manualUrl?: string | null;
+  manualDriveId?: string | null;
+  manualFileName?: string | null;
   createdBy?: string | null;
 }
 
