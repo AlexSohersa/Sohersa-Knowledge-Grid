@@ -22,9 +22,13 @@ import type { Documento } from "@/modules/biblioteca/domain/documento";
 export function VisorDocumento({
   doc,
   onCerrar,
+  volverA = "Biblioteca",
 }: {
   doc: Documento;
   onCerrar: () => void;
+  /** A dónde regresa el botón de la barra: el visor se abre también desde
+   *  la ficha de una herramienta, para leer su manual. */
+  volverA?: string;
 }) {
   const [zoom, setZoom] = useState(100);
   const [ajustado, setAjustado] = useState(false);
@@ -103,7 +107,7 @@ export function VisorDocumento({
           }}
         >
           <Icon name="back" size={12} />
-          Biblioteca
+          {volverA}
         </button>
 
         <span

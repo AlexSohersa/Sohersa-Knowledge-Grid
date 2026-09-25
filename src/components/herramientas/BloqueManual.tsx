@@ -1,4 +1,5 @@
 import { AVISOS } from "@/components/herramientas/BloqueDescarga";
+import { VerManual } from "@/components/herramientas/VerManual";
 import type { Herramienta } from "@/modules/herramientas/domain/herramienta";
 
 /**
@@ -8,8 +9,8 @@ import type { Herramienta } from "@/modules/herramientas/domain/herramienta";
  * biblioteca: esa coincidencia se rompe en cuanto alguien renombra algo, y
  * además no llegaba a la ficha.
  *
- * Los dos botones pasan por la plataforma, como la descarga: «Ver» lo abre en
- * una pestaña —un PDF se lee ahí mismo— y «Descargar» lo guarda.
+ * «Ver» lo abre en el MISMO visor de la biblioteca, sin salir del Centro.
+ * «Descargar» pasa por la plataforma, como el archivo de la herramienta.
  */
 export function BloqueManual({
   h,
@@ -35,6 +36,10 @@ export function BloqueManual({
     textDecoration: "none",
     display: "inline-flex",
     alignItems: "center",
+    // «Ver» es un botón y «Descargar» un enlace: estas dos líneas hacen que
+    // se vean iguales.
+    cursor: "pointer",
+    fontFamily: "inherit",
   };
 
   return (
@@ -91,9 +96,7 @@ export function BloqueManual({
         </div>
 
         <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
-          <a href={`${base}&ver=1`} target="_blank" rel="noreferrer" className="kc-btn" style={boton}>
-            Ver
-          </a>
+          <VerManual h={h} style={boton} />
           <a href={base} className="kc-btn" style={boton}>
             Descargar
           </a>

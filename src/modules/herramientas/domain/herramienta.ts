@@ -32,6 +32,7 @@ export interface Herramienta {
   manualFileName: string | null;
   downloads: number;
   createdBy: string | null;
+  updatedAt: Date;
 }
 
 /**

@@ -24,8 +24,8 @@ import { gridConfigured, gridDb } from "@/lib/grid/db";
  * se redirige a él, como antes.
  *
  * Sirve también el MANUAL de la herramienta (`?archivo=manual`), por el mismo
- * camino y con las mismas reglas. Con `?ver=1` el archivo se entrega para
- * abrirse en el navegador —un PDF se lee en la pestaña— en vez de guardarse.
+ * camino y con las mismas reglas. Para LEERLO, la ficha abre el visor de la
+ * biblioteca; esta ruta solo lo descarga.
  */
 
 export const runtime = "nodejs";
@@ -40,7 +40,6 @@ export async function GET(
   const { id } = await params;
   const consulta = new URL(req.url).searchParams;
   const esManual = consulta.get("archivo") === "manual";
-  const ver = consulta.get("ver") === "1";
   const ficha = `/herramientas/${encodeURIComponent(id)}`;
 
   // Una ruta que sirve archivos comprueba la sesión por su cuenta: es la clase
@@ -117,7 +116,7 @@ export async function GET(
 
     const headers: Record<string, string> = {
       "Content-Type": tipo,
-      "Content-Disposition": disposicion(nombre, ver),
+      "Content-Disposition": disposicion(nombre),
       "Cache-Control": "private, no-store",
     };
     if (meta.data.size) headers["Content-Length"] = meta.data.size;
@@ -162,16 +161,15 @@ async function contar(id: string) {
 }
 
 /**
- * `attachment` —o `inline`, para verlo en el navegador— con el nombre en las
- * dos formas: la ASCII para navegadores
+ * `attachment` con el nombre en las dos formas: la ASCII para navegadores
  * viejos y la UTF-8 (RFC 5987) para que «Tablas de áreas.zip» llegue con su
  * acento.
  */
-function disposicion(nombre: string, ver = false): string {
+function disposicion(nombre: string): string {
   const ascii = nombre
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\x20-\x7E]/g, "_")
     .replace(/["\\]/g, "_");
-  return `${ver ? "inline" : "attachment"}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombre)}`;
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombre)}`;
 }

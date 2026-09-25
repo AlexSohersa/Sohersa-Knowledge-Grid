@@ -36,6 +36,7 @@ type Fila = {
   manualFileName: string | null;
   downloads: number;
   createdBy: string | null;
+  updatedAt: Date;
 };
 
 function aHerramienta(f: Fila): Herramienta {
@@ -58,6 +59,7 @@ function aHerramienta(f: Fila): Herramienta {
     manualFileName: f.manualFileName,
     downloads: f.downloads,
     createdBy: f.createdBy,
+    updatedAt: f.updatedAt,
     /*
      * La base guarda texto libre; el dominio trabaja con un conjunto cerrado.
      * Un valor que no reconozcamos se trata como disponible, que es el caso
