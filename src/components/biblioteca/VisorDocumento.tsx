@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/layout/icons";
 import { estiloExt, extDeArchivo } from "@/modules/shared/domain/conocimiento";
 import { haceCuanto, tamano } from "@/modules/shared/domain/formato";
@@ -61,7 +62,15 @@ export function VisorDocumento({
     };
   }, [onCerrar]);
 
-  return (
+  /*
+   * Se dibuja en `document.body` y no donde se declara.
+   *
+   * `position: fixed` deja de ser relativo a la pantalla en cuanto algún
+   * ancestro tiene `transform`, y `kc-rise` deja uno puesto para siempre. En la
+   * ficha de una herramienta el visor salía encajado en la tarjeta en vez de a
+   * pantalla completa. Con el portal no importa desde dónde se abra.
+   */
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -454,7 +463,8 @@ export function VisorDocumento({
           </aside>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
