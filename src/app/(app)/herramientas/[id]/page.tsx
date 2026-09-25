@@ -22,10 +22,10 @@ export default async function HerramientaPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ de?: string; ref?: string }>;
+  searchParams: Promise<{ de?: string; ref?: string; descarga?: string }>;
 }) {
   const { id } = await params;
-  const { de, ref } = await searchParams;
+  const { de, ref, descarga } = await searchParams;
   const yo = await exigirSeccion("herramientas");
 
   const h = await verHerramientaWired(id);
@@ -124,7 +124,7 @@ export default async function HerramientaPage({
 
         {/* El archivo, si lo trae. Debajo de los datos: primero qué es, luego
             cómo llevárselo. */}
-        <BloqueDescarga h={h} />
+        <BloqueDescarga h={h} fallo={descarga} />
       </div>
     </div>
   );

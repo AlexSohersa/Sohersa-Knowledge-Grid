@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { crearHerramienta } from "@/app/(app)/admin/acciones";
+import { crearHerramienta, editarHerramienta } from "@/app/(app)/admin/acciones";
 import {
   ESTADOS_ADOPCION,
   etiquetaAdopcion,
   explicacionAdopcion,
   type EstadoAdopcion,
+  type Herramienta,
 } from "@/modules/herramientas/domain/herramienta";
 import { BotonEnviar, Campo, ErrorAccion, TituloFormulario, entrada } from "./campos";
 
@@ -19,14 +21,21 @@ const ACENTOS = [
   { valor: "#E8825E", nombre: "Naranja" },
 ];
 
-/** Registrar una herramienta en el catálogo. */
-export function FormularioHerramienta() {
+/**
+ * Registrar una herramienta en el catálogo, o editar una que ya está.
+ *
+ * Con `herramienta` el formulario llega relleno y guarda sobre ella. Hace
+ * falta poder editar: el nombre es único, así que sin esto una herramienta
+ * registrada con un dato mal —un enlace de descarga que faltó— no tenía
+ * arreglo, ni siquiera dándola de alta otra vez.
+ */
+export function FormularioHerramienta({ herramienta: h }: { herramienta?: Herramienta } = {}) {
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
-  const [estado, setEstado] = useState<EstadoAdopcion>("DISPONIBLE");
+  const [estado, setEstado] = useState<EstadoAdopcion>(h?.status ?? "DISPONIBLE");
 
   async function enviar(form: FormData) {
-    const res = await crearHerramienta(form);
+    const res = h ? await editarHerramienta(h.id, form) : await crearHerramienta(form);
     if (res.ok) {
       setError(null);
       setExito(true);
@@ -44,7 +53,7 @@ export function FormularioHerramienta() {
       style={{ padding: "18px 19px" }}
     >
       <TituloFormulario ayuda="El estado de adopción dice si ya se puede usar en un entregable.">
-        Nueva herramienta
+        {h ? `Editar ${h.name}` : "Nueva herramienta"}
       </TituloFormulario>
 
       <ErrorAccion mensaje={error} />
@@ -61,17 +70,18 @@ export function FormularioHerramienta() {
             borderRadius: 9,
           }}
         >
-          Registrada. Ya está en el catálogo.
+          {h ? "Guardada. La ficha ya muestra los cambios." : "Registrada. Ya está en el catálogo."}
         </p>
       )}
 
       <Campo etiqueta="Nombre">
-        <input name="name" required placeholder="Autodesk Revit" style={entrada} />
+        <input name="name" required defaultValue={h?.name ?? ""} placeholder="Autodesk Revit" style={entrada} />
       </Campo>
 
       <Campo etiqueta="Descripción">
         <textarea
           name="description"
+          defaultValue={h?.description ?? ""}
           rows={3}
           placeholder="Modelado y documentación BIM. Herramienta principal de producción."
           style={{ ...entrada, lineHeight: 1.55, resize: "vertical" }}
@@ -80,7 +90,7 @@ export function FormularioHerramienta() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <Campo etiqueta="Clase">
-          <select name="kind" defaultValue="Software" style={entrada}>
+          <select name="kind" defaultValue={h?.kind ?? "Software"} style={entrada}>
             <option>Software</option>
             <option>Plataforma</option>
             <option>Automatización</option>
@@ -88,16 +98,16 @@ export function FormularioHerramienta() {
           </select>
         </Campo>
         <Campo etiqueta="Versión">
-          <input name="version" placeholder="2026" style={entrada} />
+          <input name="version" defaultValue={h?.version ?? ""} placeholder="2026" style={entrada} />
         </Campo>
       </div>
 
       <Campo etiqueta="Licenciamiento">
-        <input name="license" placeholder="Licencia por usuario" style={entrada} />
+        <input name="license" defaultValue={h?.license ?? ""} placeholder="Licencia por usuario" style={entrada} />
       </Campo>
 
       <Campo etiqueta="Disciplinas">
-        <input name="discipline" placeholder="Modelado · Documentación" style={entrada} />
+        <input name="discipline" defaultValue={h?.discipline ?? ""} placeholder="Modelado · Documentación" style={entrada} />
       </Campo>
 
       {/*
@@ -114,26 +124,27 @@ export function FormularioHerramienta() {
       */}
       <Campo
         etiqueta="Enlace de descarga"
-        ayuda="Opcional. De Drive o una dirección directa. Quien lo pulse descargará el archivo sin pasos intermedios."
+        ayuda="Opcional. El enlace del archivo en Drive (un .zip, un .dyn…), no de la carpeta. La plataforma lo trae de Drive y lo entrega al pulsar «Descargar»."
       >
         <input
           name="downloadUrl"
+          defaultValue={h?.downloadUrl ?? ""}
           placeholder="https://drive.google.com/file/d/…/view"
           style={entrada}
         />
       </Campo>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <Campo etiqueta="Nombre del archivo" ayuda="Lo que se enseña antes de bajarlo">
-          <input name="fileName" placeholder="Renombrar-vistas.dyn" style={entrada} />
+        <Campo etiqueta="Nombre del archivo" ayuda="Vacío: se toma de Drive">
+          <input name="fileName" defaultValue={h?.fileName ?? ""} placeholder="Renombrar-vistas.dyn" style={entrada} />
         </Campo>
-        <Campo etiqueta="Tamaño" ayuda="Opcional">
-          <input name="fileSizeText" placeholder="2.4 MB" style={entrada} />
+        <Campo etiqueta="Tamaño" ayuda="Vacío: se toma de Drive">
+          <input name="fileSizeText" defaultValue={h?.fileSizeText ?? ""} placeholder="2.4 MB" style={entrada} />
         </Campo>
       </div>
 
       <Campo etiqueta="Compatibilidad" ayuda="Opcional. Con qué funciona.">
-        <input name="compat" placeholder="Revit 2023–2025" style={entrada} />
+        <input name="compat" defaultValue={h?.compat ?? ""} placeholder="Revit 2023–2025" style={entrada} />
       </Campo>
 
       <Campo etiqueta="Estado de adopción">
@@ -164,7 +175,7 @@ export function FormularioHerramienta() {
       </Campo>
 
       <Campo etiqueta="Color">
-        <select name="accent" defaultValue="#32D66B" style={entrada}>
+        <select name="accent" defaultValue={h?.accent ?? "#32D66B"} style={entrada}>
           {ACENTOS.map((a) => (
             <option key={a.valor} value={a.valor}>
               {a.nombre}
@@ -173,7 +184,24 @@ export function FormularioHerramienta() {
         </select>
       </Campo>
 
-      <BotonEnviar pendienteTexto="Registrando…">Registrar herramienta</BotonEnviar>
+      <BotonEnviar pendienteTexto={h ? "Guardando…" : "Registrando…"}>
+        {h ? "Guardar cambios" : "Registrar herramienta"}
+      </BotonEnviar>
+
+      {h && (
+        <Link
+          href="/admin/herramientas"
+          style={{
+            display: "block",
+            textAlign: "center",
+            marginTop: 10,
+            fontSize: 11.5,
+            color: "var(--kc-ink-3)",
+          }}
+        >
+          Cancelar y registrar una nueva
+        </Link>
+      )}
     </form>
   );
 }

@@ -55,6 +55,7 @@ import {
 } from "@/modules/herramientas/infrastructure/wiring";
 import { minutosDeTexto } from "@/modules/shared/domain/formato";
 import { idDriveDe } from "@/modules/herramientas/domain/descarga";
+import { getDriveClient } from "@/lib/google/client";
 
 /**
  * Acciones de Administración.
@@ -100,13 +101,44 @@ function fechaDelFormulario(valor: FormDataEntryValue | null): Date | null {
  * Un enlace que no sea de Drive se guarda tal cual: la página de descarga de un
  * fabricante es igual de válida, y quien la puso sabe a dónde lleva.
  */
-function descargaDelFormulario(form: FormData) {
+async function descargaDelFormulario(form: FormData) {
   const enlace = String(form.get("downloadUrl") ?? "").trim();
+  const driveFileId = enlace ? idDriveDe(enlace) : null;
+  let fileName = String(form.get("fileName") ?? "").trim() || null;
+  let fileSizeText = String(form.get("fileSizeText") ?? "").trim() || null;
+
+  /*
+   * El nombre y el tamaño, de Drive, si no se escribieron.
+   *
+   * Sin ellos la ficha enseña «Archivo de la herramienta» con un sello «LINK»,
+   * y quien va a bajar no sabe qué ni cuánto. Drive ya lo sabe. Es una lectura
+   * de conveniencia: si falla —el enlace no es de un archivo, o quien
+   * administra no tiene acceso— se guarda lo que se escribió y ya.
+   */
+  if (driveFileId && (!fileName || !fileSizeText)) {
+    try {
+      const drive = await getDriveClient();
+      const meta = await drive.files.get({
+        fileId: driveFileId,
+        fields: "name,size",
+        supportsAllDrives: true,
+      });
+      fileName ??= meta.data.name ?? null;
+      if (!fileSizeText && meta.data.size) {
+        fileSizeText = tamanoLegible(Number(meta.data.size)) || null;
+      }
+    } catch (e) {
+      console.error(
+        `[herramientas] metadatos de ${driveFileId}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+  }
+
   return {
     downloadUrl: enlace || null,
-    driveFileId: enlace ? idDriveDe(enlace) : null,
-    fileName: String(form.get("fileName") ?? "").trim() || null,
-    fileSizeText: String(form.get("fileSizeText") ?? "").trim() || null,
+    driveFileId,
+    fileName,
+    fileSizeText,
     compat: String(form.get("compat") ?? "").trim() || null,
   };
 }
@@ -712,7 +744,7 @@ export async function crearHerramienta(form: FormData): Promise<Resultado> {
   if (!name) return { ok: false, error: "La herramienta necesita un nombre." };
 
   await crearHerramientaWired({
-    ...descargaDelFormulario(form),
+    ...(await descargaDelFormulario(form)),
     createdBy: yo.email,
     name,
     kind: String(form.get("kind") ?? "Software"),
@@ -736,10 +768,14 @@ export async function crearHerramienta(form: FormData): Promise<Resultado> {
 export async function editarHerramienta(id: string, form: FormData): Promise<Resultado> {
   await exigirAdmin();
 
+  const name = String(form.get("name") ?? "").trim();
+  if (!name) return { ok: false, error: "La herramienta necesita un nombre." };
+
   await editarHerramientaWired(id, {
-    ...descargaDelFormulario(form),
-    name: String(form.get("name") ?? "").trim(),
+    ...(await descargaDelFormulario(form)),
+    name,
     kind: String(form.get("kind") ?? "Software"),
+    accent: String(form.get("accent") ?? "#32D66B"),
     description: String(form.get("description") ?? "").trim() || null,
     version: String(form.get("version") ?? "").trim() || null,
     license: String(form.get("license") ?? "").trim() || null,
@@ -753,6 +789,7 @@ export async function editarHerramienta(id: string, form: FormData): Promise<Res
 
   revalidatePath("/admin");
   revalidatePath("/herramientas");
+  revalidatePath(`/herramientas/${id}`);
   return { ok: true };
 }
 

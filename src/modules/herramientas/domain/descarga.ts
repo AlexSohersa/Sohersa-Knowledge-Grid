@@ -36,28 +36,6 @@ export function idDriveDe(enlace: string): string | null {
 }
 
 /**
- * La dirección que DESCARGA el archivo, no la que lo enseña.
- *
- * Esto es lo que hace que baste con pulsar un botón. El enlace que se copia de
- * Drive abre el visor —una pestaña con una vista previa y un menú—, y desde ahí
- * todavía hay que buscar «Descargar». `uc?export=download` se salta ese paso y
- * entrega el archivo directamente.
- *
- * Con archivos grandes Drive intercala una página de aviso sobre el antivirus;
- * `confirm=t` la salta. Es el mismo parámetro que usa el propio Drive cuando se
- * pulsa «descargar de todos modos».
- */
-export function enlaceDeDescarga(
-  driveFileId: string | null | undefined,
-  downloadUrl: string | null | undefined,
-): string | null {
-  if (driveFileId) {
-    return `https://drive.google.com/uc?export=download&id=${driveFileId}&confirm=t`;
-  }
-  return downloadUrl?.trim() || null;
-}
-
-/**
  * La dirección para VER el archivo sin descargarlo.
  *
  * Hace falta junto a la de descarga: antes de bajarse un `.zip` de 40 MB,

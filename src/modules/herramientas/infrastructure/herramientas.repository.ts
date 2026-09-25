@@ -105,6 +105,17 @@ export const repositorioHerramientas: RepositorioHerramientas = {
         status: datos.status ?? "DISPONIBLE",
         position: datos.position ?? 0,
         active: datos.active ?? true,
+        /*
+         * El archivo. Faltaba aquí: el formulario lo mandaba, la acción lo
+         * saneaba, y el repositorio lo tiraba al crear. La herramienta quedaba
+         * registrada sin enlace y su ficha sin botón de descarga.
+         */
+        downloadUrl: datos.downloadUrl ?? null,
+        driveFileId: datos.driveFileId ?? null,
+        fileName: datos.fileName ?? null,
+        fileSizeText: datos.fileSizeText ?? null,
+        compat: datos.compat ?? null,
+        createdBy: datos.createdBy ?? null,
       },
       select: { id: true },
     });

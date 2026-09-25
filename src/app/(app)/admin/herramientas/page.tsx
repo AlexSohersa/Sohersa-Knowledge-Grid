@@ -10,8 +10,14 @@ import { DarDeBaja } from "@/components/admin/DarDeBaja";
 export const revalidate = 0;
 
 /** Administrar el catálogo de herramientas. */
-export default async function AdminHerramientasPage() {
+export default async function AdminHerramientasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ editar?: string }>;
+}) {
+  const { editar } = await searchParams;
   const { items } = await listarHerramientasWired({ incluirInactivas: true });
+  const enEdicion = items.find(({ herramienta }) => herramienta.id === editar)?.herramienta;
 
   return (
     <div style={{ padding: "24px 32px 44px" }}>
@@ -111,6 +117,24 @@ export default async function AdminHerramientasPage() {
                     {etiquetaAdopcion(h.status)}
                   </Pill>
 
+                  <Link
+                    href={`/admin/herramientas?editar=${encodeURIComponent(h.id)}`}
+                    className="kc-btn"
+                    style={{
+                      border: "1px solid var(--kc-line)",
+                      background: h.id === editar ? "var(--kc-cap-soft)" : "#fff",
+                      color: "var(--kc-ink-2)",
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      padding: "5px 10px",
+                      borderRadius: 8,
+                      flexShrink: 0,
+                      textDecoration: "none",
+                    }}
+                  >
+                    Editar
+                  </Link>
+
                   {h.active && <DarDeBaja herramientaId={h.id} />}
                 </div>
               );
@@ -118,7 +142,9 @@ export default async function AdminHerramientasPage() {
           )}
         </div>
 
-        <FormularioHerramienta />
+        {/* La `key` vacía el formulario al cambiar de herramienta: sin ella
+            React conservaría lo escrito en la anterior. */}
+        <FormularioHerramienta key={enEdicion?.id ?? "nueva"} herramienta={enEdicion} />
       </div>
     </div>
   );
