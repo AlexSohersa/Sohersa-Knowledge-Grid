@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { exigirSeccion } from "@/lib/grid/session";
 import { listarBibliotecaWired } from "@/modules/biblioteca/infrastructure/wiring";
 import { listarGuardadosWired } from "@/modules/personal/infrastructure/wiring";
@@ -65,6 +66,49 @@ export default async function BibliotecaPage() {
             {ultimaSync ? ` · actualizado ${haceCuanto(ultimaSync)}` : ""}
           </span>
           <BotonSincronizar />
+
+          {/*
+            «Subir» solo para quien administra.
+
+            La pantalla para dar de alta un documento vive en Administración, y
+            sin este atajo había que explicarle a cada persona dónde está. Aquí
+            queda junto a Sincronizar, que es el otro botón que trae material a
+            la biblioteca: los dos hacen lo mismo por caminos distintos.
+          */}
+          {yo.isAdmin && (
+            <Link
+              href="/admin/biblioteca"
+              className="kc-btn"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                border: "1px solid var(--kc-line)",
+                background: "#fff",
+                color: "var(--kc-ink-2)",
+                fontSize: 11.5,
+                fontWeight: 600,
+                padding: "7px 12px",
+                borderRadius: 9,
+                textDecoration: "none",
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 19V7m0 0-4 4m4-4 4 4M4 5h16" />
+              </svg>
+              Subir
+            </Link>
+          )}
         </span>
       </div>
 

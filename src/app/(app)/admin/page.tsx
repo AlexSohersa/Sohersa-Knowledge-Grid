@@ -169,6 +169,20 @@ export default async function AdminPage() {
             {herramientas.items.length} registradas
           </Pill>
         </Panel>
+
+        {/* La biblioteca se llena del cronograma; esto es para lo que nace
+            fuera de la hoja. */}
+        <Panel
+          icono="lib"
+          titulo="Biblioteca"
+          href="/admin/biblioteca"
+          acento="var(--kc-teal)"
+          descripcion="Sube documentos que no vienen del cronograma. La sincronización no los toca."
+        >
+          <Pill soft="var(--kc-doc-soft)" ink="var(--kc-doc-ink)" size="sm">
+            Subir a mano
+          </Pill>
+        </Panel>
       </div>
     </div>
   );

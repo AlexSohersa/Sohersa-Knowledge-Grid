@@ -56,6 +56,13 @@ import {
 import { minutosDeTexto } from "@/modules/shared/domain/formato";
 import { idDriveDe } from "@/modules/herramientas/domain/descarga";
 import { getDriveClient } from "@/lib/google/client";
+import {
+  borrarDocumento,
+  crearDocumento,
+  DocumentoError,
+  editarDocumento,
+  siguienteCodigo as siguienteCodigoBiblioteca,
+} from "@/modules/biblioteca/infrastructure/documentos-manuales";
 
 /**
  * Acciones de Administración.
@@ -1318,4 +1325,96 @@ function tamanoLegible(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/* ── Biblioteca · documentos dados de alta a mano ─────────────────────────── */
+
+/**
+ * Da de alta un documento en la biblioteca.
+ *
+ * Queda marcado como manual, y eso es lo que lo protege: la sincronización del
+ * cronograma solo toca lo suyo, así que traer la hoja al día no lo borra.
+ *
+ * Lo que Drive sabe del archivo —nombre, tipo y tamaño— se lee al guardar, para
+ * que el documento se vea igual que los del cronograma sin tener que escribirlo
+ * a mano.
+ */
+export async function crearDocumentoBiblioteca(form: FormData): Promise<Resultado> {
+  const yo = await exigirAdmin();
+
+  try {
+    await crearDocumento(
+      {
+        title: String(form.get("title") ?? ""),
+        section: String(form.get("section") ?? ""),
+        enlace: String(form.get("enlace") ?? ""),
+        code: String(form.get("code") ?? "") || null,
+        author: String(form.get("author") ?? "") || null,
+        training: String(form.get("training") ?? "") || null,
+      },
+      yo.email,
+    );
+
+    revalidatePath("/admin/biblioteca");
+    revalidatePath("/biblioteca");
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof DocumentoError) return { ok: false, error: e.message };
+    const motivo = e instanceof Error ? e.message : String(e);
+    console.error(`[biblioteca] no se pudo dar de alta: ${motivo}`);
+    return { ok: false, error: "No se pudo dar de alta el documento." };
+  }
+}
+
+/** Cambia un documento dado de alta a mano. */
+export async function editarDocumentoBiblioteca(
+  id: string,
+  form: FormData,
+): Promise<Resultado> {
+  await exigirAdmin();
+
+  try {
+    await editarDocumento(id, {
+      title: String(form.get("title") ?? ""),
+      section: String(form.get("section") ?? ""),
+      code: String(form.get("code") ?? "") || null,
+      author: String(form.get("author") ?? "") || null,
+      training: String(form.get("training") ?? "") || null,
+      // Vacío significa «no lo cambies», no «bórralo»: quien corrige un título
+      // no debería perder el archivo por dejar ese campo en blanco.
+      ...(String(form.get("enlace") ?? "").trim()
+        ? { enlace: String(form.get("enlace")) }
+        : {}),
+    });
+
+    revalidatePath("/admin/biblioteca");
+    revalidatePath("/biblioteca");
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof DocumentoError) return { ok: false, error: e.message };
+    return { ok: false, error: "No se pudo guardar." };
+  }
+}
+
+/** Retira un documento dado de alta a mano. */
+export async function borrarDocumentoBiblioteca(id: string): Promise<Resultado> {
+  await exigirAdmin();
+
+  try {
+    await borrarDocumento(id);
+    revalidatePath("/admin/biblioteca");
+    revalidatePath("/biblioteca");
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof DocumentoError) return { ok: false, error: e.message };
+    return { ok: false, error: "No se pudo borrar." };
+  }
+}
+
+/** El siguiente código libre de una sección, para enseñarlo en el formulario. */
+export async function codigoSugerido(section: string): Promise<string> {
+  await exigirAdmin();
+  return siguienteCodigoBiblioteca(section.trim());
 }
