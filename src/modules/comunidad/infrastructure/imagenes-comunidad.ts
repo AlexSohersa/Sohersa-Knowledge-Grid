@@ -17,6 +17,7 @@
 
 import "server-only";
 
+import { Readable } from "node:stream";
 import type { drive_v3 } from "googleapis";
 import { getDriveClient } from "@/lib/google/client";
 import { gridDb } from "@/lib/grid/db";
@@ -116,12 +117,22 @@ export async function subirImagen(
   const ext = tipo.split("/")[1]?.replace("jpeg", "jpg") ?? "png";
   const nombre = `${sello} ${usuario} ${indice + 1}.${ext}`;
 
-  const { Readable } = await import("node:stream");
-  const buffer = Buffer.from(await archivo.arrayBuffer());
+  /*
+   * `Readable` se importa ARRIBA, no aquí dentro.
+   *
+   * Estaba con `await import("node:stream")` y fallaba con «Cannot read
+   * properties of undefined (reading 'from')»: en el empaquetado de
+   * producción ese import dinámico no entrega el módulo con `Readable`
+   * directo, así que `Readable.from` se llamaba sobre `undefined`.
+   *
+   * El FAQ lleva el import estático desde el principio y sube sin problemas;
+   * esto hace lo mismo.
+   */
+  const cuerpo = Readable.from(Buffer.from(await archivo.arrayBuffer()));
 
   const creado = await drive.files.create({
     requestBody: { name: nombre, parents: [destino] },
-    media: { mimeType: tipo, body: Readable.from(buffer) },
+    media: { mimeType: tipo, body: cuerpo },
     fields: "id,name,size",
     supportsAllDrives: true,
   });

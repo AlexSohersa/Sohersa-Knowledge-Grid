@@ -22,6 +22,7 @@
 
 import "server-only";
 
+import { Readable } from "node:stream";
 import type { drive_v3 } from "googleapis";
 import { getDriveClient } from "@/lib/google/client";
 import { carpeta } from "@/modules/faq/infrastructure/subir-captura";
@@ -210,7 +211,15 @@ export async function subirArchivo(
   const destino = await subcarpetaDe(drive, codigo, titulo, cual);
 
   const nombre = nombreDestino ?? archivo.name;
-  const { Readable } = await import("node:stream");
+  /*
+   * `Readable` se importa ARRIBA, no aquí dentro.
+   *
+   * Con `await import("node:stream")` esto fallaba en producción —«Cannot read
+   * properties of undefined (reading 'from')»— porque ese import dinámico no
+   * entrega el módulo con `Readable` directo tras el empaquetado. Se vio al
+   * subir una captura en la comunidad; aquí estaba el mismo fallo esperando a
+   * que alguien subiera un video desde su equipo.
+   */
   const buffer = Buffer.from(await archivo.arrayBuffer());
 
   const creado = await drive.files.create({
