@@ -1,64 +1,92 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { encoger, peso } from "./comprimir";
 
 /** Cuántas caben. El mismo tope que aplica el servidor. */
 const TOPE = 4;
 
+interface Previa {
+  url: string;
+  nombre: string;
+  original: number;
+  final: number;
+  encogida: boolean;
+}
+
 /**
  * Elegir capturas para una pregunta.
  *
- * SE VE LO QUE SE ELIGIÓ, y no es un adorno: un `<input type="file">` a secas
- * dice «3 archivos» y nada más, así que quien sube no sabe si mandó la captura
- * correcta hasta que publica. Con la miniatura delante, un error se ve antes de
- * publicarlo.
+ * SE ENCOGEN AQUÍ, antes de salir del equipo. El archivo viaja al servidor y de
+ * ahí a Drive, y ese paso intermedio tiene un tope que no se puede subir desde
+ * el código. Antes eso significaba rechazar una captura de 6 MB con un «pesa
+ * demasiado» y dejar a quien la mandaba sin saber qué hacer.
  *
- * Las miniaturas se pintan con `URL.createObjectURL`, que las lee del propio
- * archivo sin subir nada: hasta que no se publica, la imagen no sale del
- * equipo.
+ * Ahora se reduce a un tamaño que cabe —1600 px de ancho, calidad alta— sin que
+ * nadie tenga que abrir un editor. Una captura de pantalla sigue leyéndose
+ * perfectamente; lo que se pierde es resolución que nadie iba a mirar.
+ *
+ * SE VE LO QUE SE ELIGIÓ: un `<input type="file">` a secas dice «3 archivos» y
+ * nada más, así que un error se descubre después de publicar. Con la miniatura
+ * delante, se ve antes.
  */
 export function SelectorImagenes({
   nombre = "imagenes",
   etiqueta = "Capturas",
-  ayuda = "Opcional. Hasta 4 imágenes de 2 MB.",
+  ayuda = "Opcional. Hasta 4 imágenes; las grandes se ajustan solas.",
 }: {
   nombre?: string;
   etiqueta?: string;
   ayuda?: string;
 }) {
   const entrada = useRef<HTMLInputElement>(null);
-  const [previas, setPrevias] = useState<{ url: string; nombre: string; peso: string }[]>([]);
+  const [previas, setPrevias] = useState<Previa[]>([]);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
 
-  function alElegir(e: React.ChangeEvent<HTMLInputElement>) {
-    const archivos = Array.from(e.target.files ?? []);
-    setAviso(null);
+  async function alElegir(e: React.ChangeEvent<HTMLInputElement>) {
+    const elegidos = Array.from(e.target.files ?? []);
+    if (elegidos.length === 0) return;
 
-    // Las que ya no se muestran se liberan: cada `createObjectURL` retiene el
-    // archivo en memoria hasta que se revoca.
+    setAviso(elegidos.length > TOPE ? `Solo caben ${TOPE}. Se tomarán las primeras ${TOPE}.` : null);
+
     for (const p of previas) URL.revokeObjectURL(p.url);
+    setTrabajando(true);
 
-    if (archivos.length > TOPE) {
-      setAviso(`Solo caben ${TOPE}. Se tomarán las primeras ${TOPE}.`);
-    }
+    const archivos = elegidos.slice(0, TOPE);
+    const listas: File[] = [];
+    const nuevasPrevias: Previa[] = [];
 
-    const grandes = archivos.filter((a) => a.size > 2 * 1024 * 1024);
-    if (grandes.length > 0) {
-      setAviso(
-        `${grandes.map((a) => `«${a.name}»`).join(", ")} ${grandes.length === 1 ? "pesa" : "pesan"} más de 2 MB y no se ${grandes.length === 1 ? "subirá" : "subirán"}.`,
-      );
-    }
-
-    setPrevias(
-      archivos.slice(0, TOPE).map((a) => ({
-        url: URL.createObjectURL(a),
+    for (const a of archivos) {
+      const encogida = await encoger(a);
+      listas.push(encogida);
+      nuevasPrevias.push({
+        url: URL.createObjectURL(encogida),
         nombre: a.name,
-        peso:
-          a.size < 1024 * 1024
-            ? `${Math.round(a.size / 1024)} KB`
-            : `${(a.size / 1024 / 1024).toFixed(1)} MB`,
-      })),
-    );
+        original: a.size,
+        final: encogida.size,
+        encogida: encogida.size < a.size,
+      });
+    }
+
+    /*
+     * Las versiones encogidas SUSTITUYEN a las originales en el formulario.
+     *
+     * Un `<input type="file">` no admite que se le asigne un `File` a mano,
+     * pero sí un `DataTransfer` con la lista completa. Sin esto, el navegador
+     * mandaría los archivos originales y todo el encogido no habría servido de
+     * nada.
+     */
+    try {
+      const dt = new DataTransfer();
+      for (const f of listas) dt.items.add(f);
+      if (entrada.current) entrada.current.files = dt.files;
+    } catch {
+      // Navegador que no lo admite: se manda lo original y decide el servidor.
+    }
+
+    setPrevias(nuevasPrevias);
+    setTrabajando(false);
   }
 
   function limpiar() {
@@ -67,6 +95,8 @@ export function SelectorImagenes({
     setAviso(null);
     if (entrada.current) entrada.current.value = "";
   }
+
+  const seEncogio = previas.some((p) => p.encogida);
 
   return (
     <div style={{ marginBottom: 14 }}>
@@ -83,7 +113,7 @@ export function SelectorImagenes({
         name={nombre}
         accept="image/png,image/jpeg,image/gif,image/webp"
         multiple
-        onChange={alElegir}
+        onChange={(e) => void alElegir(e)}
         style={{
           width: "100%",
           border: "1px solid var(--kc-line)",
@@ -95,6 +125,12 @@ export function SelectorImagenes({
           boxSizing: "border-box",
         }}
       />
+
+      {trabajando && (
+        <p style={{ fontSize: 11, color: "var(--kc-ink-3)", margin: "7px 0 0" }}>
+          Preparando las imágenes…
+        </p>
+      )}
 
       {aviso && (
         <p
@@ -117,7 +153,7 @@ export function SelectorImagenes({
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
             {previas.map((p) => (
               <figure key={p.url} style={{ margin: 0, width: 92 }}>
-                {/* Una miniatura local: `next/image` no sirve aquí porque la
+                {/* Miniatura local: `next/image` no sirve aquí porque la
                     dirección es un blob del navegador, sin servidor detrás. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -133,14 +169,27 @@ export function SelectorImagenes({
                   }}
                 />
                 <figcaption
-                  className="kc-clamp-1"
-                  style={{ fontSize: 9.5, color: "var(--kc-ink-4)", marginTop: 3 }}
+                  style={{ fontSize: 9.5, color: "var(--kc-ink-4)", marginTop: 3, lineHeight: 1.35 }}
                 >
-                  {p.peso}
+                  {p.encogida ? (
+                    <>
+                      <span style={{ textDecoration: "line-through" }}>{peso(p.original)}</span>{" "}
+                      <span style={{ color: "#178A49", fontWeight: 600 }}>{peso(p.final)}</span>
+                    </>
+                  ) : (
+                    peso(p.final)
+                  )}
                 </figcaption>
               </figure>
             ))}
           </div>
+
+          {seEncogio && (
+            <p style={{ fontSize: 10.5, color: "var(--kc-ink-4)", margin: "6px 0 0", lineHeight: 1.5 }}>
+              Las imágenes grandes se ajustaron para que suban rápido. Se siguen
+              leyendo igual.
+            </p>
+          )}
 
           <button
             type="button"

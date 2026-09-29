@@ -112,6 +112,34 @@ export const repositorioNotificaciones = {
       .catch(() => 0);
   },
 
+  /**
+   * Retira los avisos que apuntan a algo que ya no existe.
+   *
+   * Al borrar una pregunta, sus avisos quedaban en la campana —«Pregunta nueva
+   * en la comunidad», «Respondieron a tu pregunta»— llevando a una página que
+   * ya no está. Quien pulsaba acababa en un «no encontrado» sin entender por
+   * qué, y el contador de sin leer subía por algo que nadie podía ver.
+   *
+   * Se borran en vez de marcarse leídos: un aviso de algo que dejó de existir
+   * no es «viejo», es que nunca debió seguir ahí.
+   */
+  async olvidarPor(href: string): Promise<void> {
+    if (!gridConfigured) return;
+
+    await gridDb()
+      .notificacion.deleteMany({ where: { href } })
+      /*
+       * Un fallo aquí no vale la operación que lo provocó: si la pregunta se
+       * borró y esto no, quedan unos avisos huérfanos —molesto— pero borrar la
+       * pregunta ya funcionó, que era lo pedido.
+       */
+      .catch((e: unknown) => {
+        console.error(
+          `[avisos] no se pudieron retirar los de ${href}: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      });
+  },
+
   /** Marca como leídos todos los de una persona. */
   async marcarLeidos(email: string): Promise<void> {
     if (!gridConfigured) return;

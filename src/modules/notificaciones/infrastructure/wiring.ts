@@ -24,6 +24,17 @@ export function marcarLeidoWired(id: string, email: string) {
   return repositorioNotificaciones.marcarLeido(id, email);
 }
 
+/**
+ * Retira los avisos que llevan a algo que ya no existe.
+ *
+ * Se llama al borrar lo que los originó —una pregunta, por ejemplo—: dejarlos
+ * en la campana apuntando a una página que ya no está solo sirve para que
+ * alguien pulse y acabe en un «no encontrado».
+ */
+export function olvidarAvisosDeWired(href: string) {
+  return repositorioNotificaciones.olvidarPor(href);
+}
+
 export function avisarWired(aviso: NuevoAviso) {
   return repositorioNotificaciones.crear(aviso);
 }

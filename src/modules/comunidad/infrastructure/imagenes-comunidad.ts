@@ -35,18 +35,17 @@ export const CARPETA_COMUNIDAD = "1TKfxmuJX9SpmAH6Dsmyfr0BW2aRZyARa";
 const TIPOS = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
 
 /**
- * El tope por imagen: 2 MB.
+ * El tope por imagen, en el servidor.
  *
- * No es una cifra suelta: `next.config` limita el cuerpo de una acción a 10 MB,
- * y aquí caben cuatro imágenes. Con un tope de 8 MB por imagen, cuatro capturas
- * grandes sumarían 32 MB y la subida moriría con el error crudo de Next, sin
- * que nadie entendiera por qué.
+ * Es una RED DE SEGURIDAD, no el límite que se ve: el navegador encoge las
+ * imágenes grandes antes de mandarlas, así que a este punto llegan ya
+ * ajustadas. Esto solo ataja lo que se salte ese paso —un navegador que no
+ * pudo procesar el archivo, alguien llamando a la acción por su cuenta—.
  *
- * 2 MB sobra para una captura de pantalla —rondan los 200 KB— y para una foto
- * del móvil ya comprimida. Quien traiga algo más grande recibe un mensaje que
- * lo dice, en vez de un fallo mudo.
+ * `next.config` limita el cuerpo de una acción a 10 MB y aquí caben cuatro
+ * imágenes, así que 2.5 MB por imagen deja margen sin acercarse al borde.
  */
-const TOPE_BYTES = 2 * 1024 * 1024;
+const TOPE_BYTES = 2.5 * 1024 * 1024;
 
 /** Cuántas caben en una pregunta. Cuatro por 2 MB caben en el cuerpo de 10. */
 export const TOPE_IMAGENES = 4;
@@ -104,7 +103,8 @@ export async function subirImagen(
   if (archivo.size > TOPE_BYTES) {
     const mb = (archivo.size / 1024 / 1024).toFixed(1);
     throw new ImagenError(
-      `«${archivo.name}» pesa ${mb} MB y el tope son 2 MB. Recórtala o bájale la calidad.`,
+      `«${archivo.name}» pesa ${mb} MB y no se pudo ajustar en tu navegador. ` +
+        `Recórtala o guárdala con menos calidad antes de subirla.`,
     );
   }
 
@@ -170,13 +170,49 @@ export async function guardarImagenes(
         },
       });
     } catch (e) {
-      const motivo = e instanceof ImagenError ? e.message : `No se pudo subir «${archivo.name}».`;
-      console.error(`[comunidad] imagen de ${questionId}: ${motivo}`);
+      /*
+       * EL MOTIVO DE GOOGLE LLEGA HASTA QUIEN SUBE.
+       *
+       * Antes se decía «No se pudo subir» y nada más, y con eso no hay forma de
+       * saber si falta permiso en la carpeta, si el archivo es de un tipo
+       * rechazado o si Drive está caído. Cada uno se arregla distinto, así que
+       * esconder cuál es solo obliga a adivinar.
+       */
+      const crudo = e instanceof Error ? e.message : String(e);
+      const motivo =
+        e instanceof ImagenError
+          ? e.message
+          : `No se pudo subir «${archivo.name}»: ${explicar(crudo)}`;
+
+      console.error(`[comunidad] imagen de ${questionId}: ${crudo}`);
       avisos.push(motivo);
     }
   }
 
   return avisos;
+}
+
+/**
+ * El fallo de Google, dicho en algo que se pueda accionar.
+ *
+ * Los errores de la API llegan en inglés y con jerga —«File not found»,
+ * «Insufficient permissions»— y quien sube una captura no tiene por qué
+ * interpretarlos. Lo que importa es qué hacer a continuación.
+ */
+function explicar(crudo: string): string {
+  if (/insufficient|permission|forbidden|403/i.test(crudo)) {
+    return "tu cuenta no puede escribir en la carpeta «Comunidad» de Drive. Pide que te den permiso de editor.";
+  }
+  if (/not found|404/i.test(crudo)) {
+    return "no se encontró la carpeta «Comunidad» en Drive. Avisa a quien administra.";
+  }
+  if (/quota|storage/i.test(crudo)) {
+    return "el Drive de la empresa no tiene espacio libre.";
+  }
+  if (/invalid_grant|unauthorized|401|token/i.test(crudo)) {
+    return "tu sesión de Google caducó. Cierra sesión y vuelve a entrar.";
+  }
+  return crudo.slice(0, 120);
 }
 
 /**

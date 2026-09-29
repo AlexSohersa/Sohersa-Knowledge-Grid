@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   avisarAdminsWired,
+  olvidarAvisosDeWired,
   avisarWired,
 } from "@/modules/notificaciones/infrastructure/wiring";
 import { redirect } from "next/navigation";
@@ -222,6 +223,16 @@ export async function borrarPregunta(id: string): Promise<{ ok: boolean; error?:
 
   const res = await eliminarPreguntaWired(yo.email, id, yo.isAdmin);
   if (!res.ok) return { ok: false, error: res.error };
+
+  /*
+   * Los avisos de esa pregunta se van con ella.
+   *
+   * Quedaban en la campana —«Pregunta nueva en la comunidad», «Respondieron a
+   * tu pregunta»— llevando a una página que ya no está: quien pulsaba acababa
+   * en un «no encontrado», y el contador de sin leer subía por algo que nadie
+   * podía abrir. Como si nunca hubiera existido.
+   */
+  await olvidarAvisosDeWired(`/comunidad/${id}`).catch(() => undefined);
 
   revalidatePath("/comunidad");
   redirect("/comunidad");
