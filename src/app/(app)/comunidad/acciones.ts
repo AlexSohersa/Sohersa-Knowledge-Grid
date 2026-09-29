@@ -73,7 +73,19 @@ export async function preguntar(
    */
   const imagenes = imagenesDelFormulario(form);
   if (imagenes.length > 0) {
-    await guardarImagenes(String(res.valor), imagenes, yo.email).catch(() => []);
+    /*
+     * Un fallo aquí queda en el registro, no en pantalla: esta acción redirige
+     * a la pregunta recién creada, así que no hay dónde enseñar el aviso. Lo
+     * que importa —la pregunta— ya está guardado, y las capturas se pueden
+     * añadir editándola.
+     */
+    const avisos = await guardarImagenes(String(res.valor), imagenes, yo.email).catch((e) => [
+      e instanceof Error ? e.message : "error de Drive",
+    ]);
+
+    if (avisos.length > 0) {
+      console.error(`[comunidad] capturas de ${res.valor}: ${avisos.join(" · ")}`);
+    }
   }
 
   /*
@@ -232,7 +244,7 @@ export async function editarPregunta(
 ): Promise<{ ok: boolean; error?: string }> {
   const yo = await exigirSesion();
 
-  const pregunta = await verPreguntaWired(id, yo.email);
+  const pregunta = await verPreguntaWired(yo.email, id);
   if (!pregunta) return { ok: false, error: "Esa pregunta ya no existe." };
 
   const esSuya = pregunta.email.toLowerCase() === yo.email.toLowerCase();
@@ -259,19 +271,32 @@ export async function editarPregunta(
       },
     });
 
-    // Capturas nuevas, si las añadió al editar. Se numeran a partir de las que
-    // ya tenía para no pisar el orden.
+    /*
+     * Las capturas nuevas, numeradas a partir de las que ya tenía.
+     *
+     * LOS AVISOS SE DEVUELVEN. Antes esto llevaba un `.catch(() => [])` que se
+     * tragaba los fallos: si Drive rechazaba una imagen, el cambio se guardaba,
+     * parecía que todo había ido bien, y la captura simplemente no estaba. Un
+     * fallo mudo es peor que uno ruidoso.
+     */
+    let avisos: string[] = [];
     const nuevas = imagenesDelFormulario(form);
+
     if (nuevas.length > 0) {
       const cuantas = await gridDb()
         .questionImage.count({ where: { questionId: id } })
         .catch(() => 0);
-      await guardarImagenes(id, nuevas, yo.email, cuantas).catch(() => []);
+
+      avisos = await guardarImagenes(id, nuevas, yo.email, cuantas).catch((e) => [
+        `No se pudieron subir las capturas: ${e instanceof Error ? e.message : "error de Drive"}`,
+      ]);
     }
 
     revalidatePath(`/comunidad/${id}`);
     revalidatePath("/comunidad");
-    return { ok: true };
+
+    // El texto se guardó; lo de las capturas es un aviso, no un fallo.
+    return avisos.length > 0 ? { ok: true, error: avisos.join(" ") } : { ok: true };
   } catch (e) {
     console.error(`[comunidad] no se pudo editar ${id}: ${e instanceof Error ? e.message : e}`);
     return { ok: false, error: "No se pudo guardar el cambio." };
@@ -285,7 +310,7 @@ export async function quitarImagenPregunta(
 ): Promise<{ ok: boolean; error?: string }> {
   const yo = await exigirSesion();
 
-  const pregunta = await verPreguntaWired(preguntaId, yo.email);
+  const pregunta = await verPreguntaWired(yo.email, preguntaId);
   if (!pregunta) return { ok: false, error: "Esa pregunta ya no existe." };
 
   const esSuya = pregunta.email.toLowerCase() === yo.email.toLowerCase();

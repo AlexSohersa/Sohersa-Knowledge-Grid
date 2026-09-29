@@ -37,16 +37,33 @@ export function AccionesPregunta({
   const [editando, setEditando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /*
+   * Un aviso NO es un fallo.
+   *
+   * Al editar, el texto puede guardarse bien y aun así fallar una captura. Con
+   * un solo estado, eso se pintaba en rojo como si no se hubiera guardado nada,
+   * y quien editaba volvía a intentarlo creyendo que se había perdido.
+   */
+  const [aviso, setAviso] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
 
   if (!puedeEditar && !puedeBorrar) return null;
 
   async function guardar(form: FormData) {
     setError(null);
+    setAviso(null);
+
     const res = await editarPregunta(id, form);
 
     if (!res.ok) {
       setError(res.error ?? "No se pudo guardar.");
+      return;
+    }
+
+    // `ok` con mensaje es un aviso: se guardó, pero alguna captura no subió.
+    if (res.error) {
+      setAviso(res.error);
+      router.refresh();
       return;
     }
 
@@ -92,6 +109,11 @@ export function AccionesPregunta({
     return (
       <form action={guardar} style={{ marginTop: 16 }}>
         {error && <p style={avisoError}>{error}</p>}
+        {aviso && (
+          <p style={avisoAmbar}>
+            El texto se guardó. {aviso}
+          </p>
+        )}
 
         <label style={etiqueta}>Título</label>
         <input name="title" required defaultValue={title} style={{ ...entrada, marginBottom: 10 }} />
@@ -264,6 +286,16 @@ const avisoError: React.CSSProperties = {
   padding: "8px 11px",
   background: "#FCE9EA",
   color: "#B3383F",
+  borderRadius: 8,
+  fontSize: 12,
+  lineHeight: 1.5,
+};
+
+const avisoAmbar: React.CSSProperties = {
+  margin: "0 0 10px",
+  padding: "8px 11px",
+  background: "#FDF3DC",
+  color: "#8A6410",
   borderRadius: 8,
   fontSize: 12,
   lineHeight: 1.5,
