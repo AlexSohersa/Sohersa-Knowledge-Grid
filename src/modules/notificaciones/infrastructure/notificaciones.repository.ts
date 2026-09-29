@@ -97,19 +97,66 @@ export const repositorioNotificaciones = {
         return [];
       });
 
-    return filas.map((f) => ({ ...f, kind: f.kind as ClaseAviso }));
+    /*
+     * SE DESCARTAN LOS QUE LLEVAN A UNA PREGUNTA BORRADA.
+     *
+     * Al borrar una pregunta se retiran sus avisos, pero eso puede no haber
+     * ocurrido: una versión anterior de la aplicación, un fallo de la base en
+     * ese instante. Y el resultado es feo y difícil de explicar —un aviso que
+     * lleva a un «no encontrado» y un contador que cuenta algo invisible—.
+     *
+     * Filtrarlo AQUÍ hace que la campana sea correcta pase lo que pase antes.
+     * Es una consulta más por carga, sobre una lista de cincuenta como mucho, y
+     * solo cuando hay avisos de comunidad.
+     */
+    const deComunidad = filas
+      .map((f) => f.href)
+      .filter((h): h is string => Boolean(h?.startsWith("/comunidad/")));
+
+    if (deComunidad.length === 0) {
+      return filas.map((f) => ({ ...f, kind: f.kind as ClaseAviso }));
+    }
+
+    const ids = [...new Set(deComunidad.map((h) => h.slice("/comunidad/".length)))];
+
+    const vivas = await gridDb()
+      .question.findMany({ where: { id: { in: ids } }, select: { id: true } })
+      .catch(() => null);
+
+    // Si la comprobación falla, se enseñan todos: vale más un aviso de más que
+    // una campana vacía por una consulta que no respondió.
+    if (!vivas) {
+      return filas.map((f) => ({ ...f, kind: f.kind as ClaseAviso }));
+    }
+
+    const existen = new Set(vivas.map((q) => q.id));
+
+    return filas
+      .filter(
+        (f) =>
+          !f.href?.startsWith("/comunidad/") ||
+          existen.has(f.href.slice("/comunidad/".length)),
+      )
+      .map((f) => ({ ...f, kind: f.kind as ClaseAviso }));
   },
 
   /** Cuántos sin leer. Es lo único que necesita el contador de la campana. */
   async sinLeer(email: string): Promise<number> {
     if (!gridConfigured) return 0;
 
-    // Mismo motivo que en `listar`: el contador no vale una pantalla en blanco.
-    return gridDb()
-      .notificacion.count({
-        where: { email: email.toLowerCase(), readAt: null },
-      })
-      .catch(() => 0);
+    /*
+     * SE CUENTA LO MISMO QUE SE ENSEÑA.
+     *
+     * Un `count` directo incluiría los avisos que llevan a una pregunta
+     * borrada, y `listar` ya los descarta: el número diría «3» y al abrir la
+     * campana habría uno. Peor que el número equivocado es que no se pueda
+     * bajar a cero —quedaría siempre encendido por algo que nadie ve—.
+     *
+     * Se reutiliza `listar` en vez de repetir el filtro: así los dos no pueden
+     * separarse el día que cambie la regla.
+     */
+    const avisos = await this.listar(email);
+    return avisos.filter((a) => a.readAt === null).length;
   },
 
   /**
