@@ -17,6 +17,8 @@ import { Icon } from "@/components/layout/icons";
 import { Pill } from "@/components/ui/Pill";
 import { BotonGuardar } from "@/components/ui/BotonGuardar";
 import { HiloRespuestas } from "@/components/comunidad/HiloRespuestas";
+import { CapturasPregunta } from "@/components/comunidad/CapturasPregunta";
+import { AccionesPregunta } from "@/components/comunidad/AccionesPregunta";
 import { FormularioRespuesta } from "@/components/comunidad/FormularioRespuesta";
 import { BotonPromoverFaq } from "@/components/comunidad/BotonPromoverFaq";
 
@@ -33,6 +35,10 @@ export default async function PreguntaPage({
 
   const pregunta = await verPreguntaWired(yo.email, id);
   if (!pregunta) notFound();
+
+  // Quien la escribió puede corregirla y retirarla. El servidor lo vuelve a
+  // comprobar: esto solo decide qué botones se pintan.
+  const esMia = pregunta.email.toLowerCase() === yo.email.toLowerCase();
 
   await Promise.all([
     registrarVistaPreguntaWired(pregunta.id),
@@ -134,6 +140,26 @@ export default async function PreguntaPage({
         >
           {pregunta.body}
         </p>
+
+        {/* Las capturas, si las trae: se ven a un tamaño que deja reconocer la
+            pantalla sin empujar las respuestas fuera de la vista. */}
+        <CapturasPregunta imagenes={pregunta.imagenes} />
+
+        {/*
+          Editar y borrar. Quién puede se decide en el servidor; aquí solo se
+          decide si se pintan los botones.
+
+          Borrar lo puede hacer quien la escribió o quien administra —esa es la
+          regla que ya tenía la acción—; editar, solo esas mismas personas.
+        */}
+        <AccionesPregunta
+          id={pregunta.id}
+          title={pregunta.title}
+          body={pregunta.body}
+          imagenes={pregunta.imagenes}
+          puedeEditar={esMia || yo.isAdmin}
+          puedeBorrar={esMia || yo.isAdmin}
+        />
 
         <div
           style={{

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { preguntar, type EstadoFormulario } from "@/app/(app)/comunidad/acciones";
+import { SelectorImagenes } from "./SelectorImagenes";
 
 const INICIAL: EstadoFormulario = { ok: false };
 
@@ -90,6 +91,14 @@ export function FormularioPregunta({
       <Campo etiqueta="Etiquetas" ayuda="Separadas por comas. Ayudan a que otros la encuentren.">
         <input name="tags" placeholder="revisiones, planos, emisión" style={entrada} />
       </Campo>
+
+      {/*
+        Las capturas van al final, después de describir el problema.
+
+        Casi siempre hay una pantalla detrás de una pregunta de soporte, y sin
+        poder adjuntarla se describe con palabras lo que se vería de un vistazo.
+      */}
+      <SelectorImagenes ayuda="Opcional. La pantalla del error, el modelo… hasta 4." />
 
       {estado.error && !estado.errores && (
         <p role="alert" style={{ fontSize: 12, color: "#C23840", margin: "4px 0 0" }}>

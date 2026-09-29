@@ -28,6 +28,16 @@ function incluirRespuestas(email: string) {
         _count: { select: { votes: true } },
       },
     },
+    /*
+     * Las capturas viajan con la pregunta.
+     *
+     * En el mismo `include` y no en una consulta aparte: son pocas por pregunta
+     * y pedirlas después sería una segunda ida a la base para traer tres filas.
+     */
+    imagenes: {
+      orderBy: { position: "asc" as const },
+      select: { id: true, driveId: true, fileName: true },
+    },
   };
 }
 
@@ -67,7 +77,9 @@ type FilaPregunta = {
   closed: boolean;
   createdAt: Date;
   updatedAt: Date;
+  editedAt: Date | null;
   answers: FilaRespuesta[];
+  imagenes: { id: string; driveId: string; fileName: string | null }[];
 };
 
 function aRespuesta(r: FilaRespuesta): Respuesta {
@@ -107,8 +119,10 @@ function aPregunta(p: FilaPregunta): Pregunta {
     views: p.views,
     closed: p.closed,
     respuestas: p.answers.map(aRespuesta),
+    imagenes: p.imagenes ?? [],
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
+    editedAt: p.editedAt ?? null,
   };
 }
 

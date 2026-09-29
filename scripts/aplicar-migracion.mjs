@@ -46,7 +46,7 @@ if (destino !== "LOCAL" && !process.env.CONFIRMAR_PRODUCCION) {
  * arrastraría. Como todas son idempotentes, aplicarlas siempre todas deja la
  * base al día sin llevar registro de cuál se corrió.
  */
-const MIGRACIONES = ["002_despliegue_grid.sql", "003_faq_bim.sql", "004_capacitaciones_drive.sql", "005_herramientas_descarga.sql", "006_herramientas_manual.sql"];
+const MIGRACIONES = ["002_despliegue_grid.sql", "003_faq_bim.sql", "004_capacitaciones_drive.sql", "005_herramientas_descarga.sql", "006_herramientas_manual.sql", "007_comunidad_imagenes.sql"];
 
 const client = new Client({ connectionString: url });
 

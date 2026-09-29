@@ -44,8 +44,19 @@ export interface Pregunta {
   views: number;
   closed: boolean;
   respuestas: Respuesta[];
+  /** Las capturas que acompañan la pregunta, en el orden en que se subieron. */
+  imagenes: ImagenPregunta[];
   createdAt: Date;
   updatedAt: Date;
+  /** Cuándo se editó el texto, si se editó. */
+  editedAt: Date | null;
+}
+
+/** Una captura adjunta a una pregunta. */
+export interface ImagenPregunta {
+  id: string;
+  driveId: string;
+  fileName: string | null;
 }
 
 /**

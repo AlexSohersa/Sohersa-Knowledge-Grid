@@ -7,6 +7,12 @@ import {
 } from "@/modules/notificaciones/infrastructure/wiring";
 import { redirect } from "next/navigation";
 import { exigirSesion } from "@/lib/grid/session";
+import { gridDb } from "@/lib/grid/db";
+import {
+  guardarImagenes,
+  imagenesDelFormulario,
+  quitarImagen,
+} from "@/modules/comunidad/infrastructure/imagenes-comunidad";
 import {
   alternarVotoWired,
   comentarWired,
@@ -57,6 +63,18 @@ export async function preguntar(
   );
 
   if (!res.ok) return { ok: false, error: res.error, errores: res.errores };
+
+  /*
+   * Las capturas, después de crear la pregunta.
+   *
+   * Necesitan su id para colgarse de ella, así que no pueden ir antes. Y si una
+   * falla, la pregunta ya está guardada: vale más una pregunta sin captura que
+   * perderla entera porque Drive tardó en responder.
+   */
+  const imagenes = imagenesDelFormulario(form);
+  if (imagenes.length > 0) {
+    await guardarImagenes(String(res.valor), imagenes, yo.email).catch(() => []);
+  }
 
   /*
    * Aviso a quien administra. Va antes del `redirect` porque ese lanza una
@@ -195,6 +213,90 @@ export async function borrarPregunta(id: string): Promise<{ ok: boolean; error?:
 
   revalidatePath("/comunidad");
   redirect("/comunidad");
+}
+
+/**
+ * Corrige una pregunta propia.
+ *
+ * Faltaba, y se notaba: una pregunta con una errata, o a la que se le olvidó la
+ * captura, no tenía arreglo. La única salida era borrarla y escribirla otra
+ * vez, perdiendo las respuestas que ya tuviera.
+ *
+ * SOLO LA PROPIA, o cualquiera si se administra. La comprobación va en el
+ * servidor y no en si se pinta el botón: esconderlo no impide llamar a la
+ * acción a mano.
+ */
+export async function editarPregunta(
+  id: string,
+  form: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const yo = await exigirSesion();
+
+  const pregunta = await verPreguntaWired(id, yo.email);
+  if (!pregunta) return { ok: false, error: "Esa pregunta ya no existe." };
+
+  const esSuya = pregunta.email.toLowerCase() === yo.email.toLowerCase();
+  if (!esSuya && !yo.isAdmin) {
+    return { ok: false, error: "Solo quien la escribió puede editarla." };
+  }
+
+  const title = String(form.get("title") ?? "").trim();
+  const body = String(form.get("body") ?? "").trim();
+
+  if (!title) return { ok: false, error: "La pregunta necesita un título." };
+  if (!body) return { ok: false, error: "Escribe en qué consiste el problema." };
+
+  try {
+    await gridDb().question.update({
+      where: { id },
+      data: {
+        title,
+        body,
+        // `editedAt` marca las ediciones de VERDAD. `updatedAt` se mueve con
+        // cualquier cosa —una respuesta, una vista—, así que usarlo haría
+        // aparecer «editada» en preguntas que nadie tocó.
+        editedAt: new Date(),
+      },
+    });
+
+    // Capturas nuevas, si las añadió al editar. Se numeran a partir de las que
+    // ya tenía para no pisar el orden.
+    const nuevas = imagenesDelFormulario(form);
+    if (nuevas.length > 0) {
+      const cuantas = await gridDb()
+        .questionImage.count({ where: { questionId: id } })
+        .catch(() => 0);
+      await guardarImagenes(id, nuevas, yo.email, cuantas).catch(() => []);
+    }
+
+    revalidatePath(`/comunidad/${id}`);
+    revalidatePath("/comunidad");
+    return { ok: true };
+  } catch (e) {
+    console.error(`[comunidad] no se pudo editar ${id}: ${e instanceof Error ? e.message : e}`);
+    return { ok: false, error: "No se pudo guardar el cambio." };
+  }
+}
+
+/** Quita una captura de una pregunta propia. */
+export async function quitarImagenPregunta(
+  imagenId: string,
+  preguntaId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const yo = await exigirSesion();
+
+  const pregunta = await verPreguntaWired(preguntaId, yo.email);
+  if (!pregunta) return { ok: false, error: "Esa pregunta ya no existe." };
+
+  const esSuya = pregunta.email.toLowerCase() === yo.email.toLowerCase();
+  if (!esSuya && !yo.isAdmin) {
+    return { ok: false, error: "Solo quien la escribió puede quitar sus capturas." };
+  }
+
+  await quitarImagen(imagenId, preguntaId);
+
+  revalidatePath(`/comunidad/${preguntaId}`);
+  return { ok: true };
 }
 
 /** Promover una pregunta resuelta a pregunta frecuente. */
