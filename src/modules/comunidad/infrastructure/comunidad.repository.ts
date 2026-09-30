@@ -18,12 +18,39 @@ import type {
  * filtrado por persona dice si quien mira ya votó. Traer todos los votos para
  * contarlos en memoria sería traer cientos de filas para obtener un número.
  */
+/*
+ * La ficha viva de quien escribió, para no enseñar la copia vieja.
+ *
+ * `authorName` y `authorRole` se guardan al publicar y ahí se quedan: una
+ * pregunta de hace meses seguía firmada con el puesto de entonces, y con el
+ * nombre legal en mayúsculas —"RAÚL YAMIL PEÑA MACIAS"— porque así lo guarda
+ * el padrón. Trayendo la persona se enseña lo de hoy.
+ *
+ * La copia NO se borra: es el respaldo de quien ya no esté en el padrón, y
+ * dejaría la firma en blanco.
+ */
+/** La ficha del padrón, tal como viene en la consulta. */
+type Ficha = {
+  nombre_usuario: string | null;
+  nombre: string;
+  puesto: string | null;
+} | null;
+
+const FICHA_AUTOR = {
+  select: { nombre_usuario: true, nombre: true, puesto: true },
+} as const;
+
 function incluirRespuestas(email: string) {
   return {
+    persona: FICHA_AUTOR,
     answers: {
       orderBy: { createdAt: "asc" as const },
       include: {
-        comments: { orderBy: { createdAt: "asc" as const } },
+        persona: FICHA_AUTOR,
+        comments: {
+          orderBy: { createdAt: "asc" as const },
+          include: { persona: FICHA_AUTOR },
+        },
         votes: { where: { email }, select: { id: true } },
         _count: { select: { votes: true } },
       },
@@ -46,6 +73,8 @@ type FilaComentario = {
   body: string;
   email: string;
   authorName: string;
+  /** La ficha viva; null si esa persona ya no está en el padrón. */
+  persona: Ficha;
   createdAt: Date;
 };
 
@@ -55,6 +84,7 @@ type FilaRespuesta = {
   email: string;
   authorName: string;
   authorRole: string | null;
+  persona: Ficha;
   validatedAt: Date | null;
   validatedBy: string | null;
   createdAt: Date;
@@ -70,6 +100,7 @@ type FilaPregunta = {
   email: string;
   authorName: string;
   authorRole: string | null;
+  persona: Ficha;
   category: string;
   software: string | null;
   tags: string[];
@@ -82,13 +113,27 @@ type FilaPregunta = {
   imagenes: { id: string; driveId: string; fileName: string | null }[];
 };
 
+/** La ficha del padrón, tal como viene en la consulta. */
+/**
+ * Cómo se firma: lo del padrón, y si no hay, lo que se guardó al publicar.
+ *
+ * El nombre CORTO —"Yamil Peña"—, no el legal: el padrón guarda el legal en
+ * mayúsculas para nóminas, y en una firma solo alarga y grita.
+ */
+function firma(persona: Ficha, nombreGuardado: string, puestoGuardado?: string | null) {
+  return {
+    authorName:
+      persona?.nombre_usuario?.trim() || persona?.nombre?.trim() || nombreGuardado,
+    authorRole: persona?.puesto ?? puestoGuardado ?? null,
+  };
+}
+
 function aRespuesta(r: FilaRespuesta): Respuesta {
   return {
     id: r.id,
     body: r.body,
     email: r.email,
-    authorName: r.authorName,
-    authorRole: r.authorRole,
+    ...firma(r.persona ?? null, r.authorName, r.authorRole),
     validatedAt: r.validatedAt,
     validatedBy: r.validatedBy,
     votos: r._count.votes,
@@ -98,7 +143,8 @@ function aRespuesta(r: FilaRespuesta): Respuesta {
       id: c.id,
       body: c.body,
       email: c.email,
-      authorName: c.authorName,
+      authorName:
+        c.persona?.nombre_usuario?.trim() || c.persona?.nombre?.trim() || c.authorName,
       createdAt: c.createdAt,
     })),
     createdAt: r.createdAt,
@@ -111,8 +157,7 @@ function aPregunta(p: FilaPregunta): Pregunta {
     title: p.title,
     body: p.body,
     email: p.email,
-    authorName: p.authorName,
-    authorRole: p.authorRole,
+    ...firma(p.persona ?? null, p.authorName, p.authorRole),
     category: p.category,
     software: p.software,
     tags: p.tags,
