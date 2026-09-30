@@ -91,7 +91,13 @@ export const usuarioActual = cache(async function usuarioActual(): Promise<Curre
           where: { correo: { equals: email, mode: "insensitive" } },
           select: {
             persona: {
-              select: { nombre: true, foto: true, puesto: true, area: true },
+              select: {
+                nombre: true,
+                nombre_usuario: true,
+                foto: true,
+                puesto: true,
+                area: true,
+              },
             },
           },
         })
@@ -99,7 +105,15 @@ export const usuarioActual = cache(async function usuarioActual(): Promise<Curre
     : null;
 
   const perfil = correo?.persona ?? null;
-  const name = perfil?.nombre ?? session.user?.name ?? email;
+  /* El nombre CORTO, que es el que la gente reconoce: "Yamil Peña", no
+     "RAÚL YAMIL PEÑA MACIAS". El legal está en `nombre` y sirve para nóminas
+     y documentos; en una pregunta de la comunidad solo alarga la línea y
+     grita, porque el padrón lo guarda en mayúsculas. */
+  const name =
+    perfil?.nombre_usuario?.trim() ||
+    perfil?.nombre ||
+    session.user?.name ||
+    email;
 
   return {
     email,
